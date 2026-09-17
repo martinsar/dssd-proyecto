@@ -41,8 +41,7 @@ public class Emergencia {
     @OneToMany(mappedBy = "emergencia", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Convocatoria> convocatorias;
 
-    // --- GETTERS Y SETTERS ---
-
+ 
     public Long getId() {
         return id;
     }

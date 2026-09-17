@@ -21,8 +21,7 @@ public class Proyecto {
     @OneToMany(mappedBy = "proyecto", cascade = CascadeType.ALL)
     private List<Emergencia> emergencias;
 
-    // --- GETTERS Y SETTERS ---
-
+    
     public Long getId() {
         return id;
     }

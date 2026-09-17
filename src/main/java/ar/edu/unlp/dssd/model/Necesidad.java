@@ -27,8 +27,7 @@ public class Necesidad {
     @JoinColumn(name = "tipo_recurso_id")
     private TipoRecurso tipoRecurso;
 
-    // --- GETTERS Y SETTERS ---
-
+    
     public Long getId() {
         return id;
     }

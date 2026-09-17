@@ -38,8 +38,7 @@ public class Usuario {
     @OneToMany(mappedBy = "validadoPor", cascade = CascadeType.ALL)
     private List<Organizacion> organizacionesValidadas;
 
-    // --- GETTERS Y SETTERS ---
-
+    
     public Long getId() {
         return id;
     }

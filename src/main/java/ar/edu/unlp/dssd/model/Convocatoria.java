@@ -38,7 +38,7 @@ public class Convocatoria {
     @OneToMany(mappedBy = "convocatoria", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Oferta> ofertas;
 
-    // --- GETTERS Y SETTERS ---
+    
 
     public Long getId() {
         return id;

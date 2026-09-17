@@ -42,7 +42,6 @@ public class Oferta {
     @JoinColumn(name = "convocatoria_id")
     private Convocatoria convocatoria;
 
-    // --- GETTERS Y SETTERS ---
 
     public Long getId() {
         return id;
