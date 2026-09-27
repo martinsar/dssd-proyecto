@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import ar.edu.unlp.dssd.model.Emergencia;
-import ar.edu.unlp.dssd.service.BonitaIntegrationService;
+import ar.edu.unlp.dssd.service.BonitaService;
 import ar.edu.unlp.dssd.service.EmergenciaService;
 // Importá el servicio de Bonita que hayas creado
 // import ar.edu.unlp.dssd.service.BonitaIntegrationService; 
@@ -22,25 +22,14 @@ public class EmergenciaController {
 
     // 1. Inyectamos el servicio que se comunica con la API de Bonita
     @Autowired
-    private BonitaIntegrationService bonitaIntegrationService;
+    private BonitaService bonitaService;
 
     @PostMapping
     public ResponseEntity<?> crear(@RequestBody Emergencia emergencia) {
         // 2. Guardamos la emergencia en la base de datos (PostgreSQL)
         Emergencia nuevaEmergencia = emergenciaService.guardar(emergencia);
 
-        // 3. Disparamos la instancia en Bonita enviando el contrato
-        try {
-            bonitaIntegrationService.iniciarProcesoEmergencia(
-                nuevaEmergencia.getId(), // Asegurate de que el getter se llame así
-                nuevaEmergencia.getTipoDesastre()
-            );
-        } catch (Exception e) {
-            // Si Bonita falla, la emergencia ya quedó guardada en BD, 
-            // pero le avisamos al frontend que hubo un problema con el proceso.
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Emergencia guardada, pero falló la conexión con Bonita: " + e.getMessage());
-        }
+      
 
         return ResponseEntity.ok(nuevaEmergencia);
     }
@@ -80,5 +69,25 @@ public class EmergenciaController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+    
+    @GetMapping("/{id}/ofertas")
+    public ResponseEntity<?> obtenerOfertasDeEmergencia(@PathVariable Long id) {
+        System.out.println("=================================================");
+        System.out.println(">>> BONITA LLAMÓ AL ENDPOINT GET /api/emergencias/" + id + "/ofertas <<<");
+        System.out.println("=================================================");
+
+        var emergenciaOpt = emergenciaService.obtenerPorId(id);
+        if (emergenciaOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(List.of());
+    }
+    
+    @PostMapping("/notificar-ong")
+    public ResponseEntity<String> notificarONG() {
+        bonitaService.enviarMensajeNotificacionONG("Recibe una notificación");
+        return ResponseEntity.ok("Mensaje enviado a Bonita para Recibir Notificación");
     }
 }

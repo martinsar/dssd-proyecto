@@ -41,6 +41,7 @@ public class Emergencia {
     @OneToMany(mappedBy = "emergencia", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Convocatoria> convocatorias;
 
+    
  
     public Long getId() {
         return id;
