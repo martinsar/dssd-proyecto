@@ -7,11 +7,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import ar.edu.unlp.dssd.dto.ConvocatoriaRequest;
+import ar.edu.unlp.dssd.model.Convocatoria;
 import ar.edu.unlp.dssd.model.Emergencia;
-import ar.edu.unlp.dssd.service.BonitaIntegrationService;
+import ar.edu.unlp.dssd.service.ConvocatoriaService;
 import ar.edu.unlp.dssd.service.EmergenciaService;
-// Importá el servicio de Bonita que hayas creado
-// import ar.edu.unlp.dssd.service.BonitaIntegrationService; 
 
 @RestController
 @RequestMapping("/api/emergencias")
@@ -20,34 +20,25 @@ public class EmergenciaController {
     @Autowired
     private EmergenciaService emergenciaService;
 
-    // 1. Inyectamos el servicio que se comunica con la API de Bonita
     @Autowired
-    private BonitaIntegrationService bonitaIntegrationService;
+    private ConvocatoriaService convocatoriaService;
 
     @PostMapping
-    public ResponseEntity<?> crear(@RequestBody Emergencia emergencia) {
-        // 2. Guardamos la emergencia en la base de datos (PostgreSQL)
-        Emergencia nuevaEmergencia = emergenciaService.guardar(emergencia);
-
-        // 3. Disparamos la instancia en Bonita enviando el contrato
-        try {
-            bonitaIntegrationService.iniciarProcesoEmergencia(
-                nuevaEmergencia.getId(), // Asegurate de que el getter se llame así
-                nuevaEmergencia.getTipoDesastre()
-            );
-        } catch (Exception e) {
-            // Si Bonita falla, la emergencia ya quedó guardada en BD, 
-            // pero le avisamos al frontend que hubo un problema con el proceso.
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Emergencia guardada, pero falló la conexión con Bonita: " + e.getMessage());
-        }
-
-        return ResponseEntity.ok(nuevaEmergencia);
+    public ResponseEntity<Emergencia> crear(@RequestBody Emergencia emergencia) {
+        // crear() guarda la emergencia y crea su caso en Bonita (todo o nada)
+        Emergencia nueva = emergenciaService.crear(emergencia);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nueva);
     }
 
     @GetMapping
     public List<Emergencia> listar() {
         return emergenciaService.obtenerTodos();
+    }
+
+    // Path literal: Spring lo prefiere sobre "/{id}", asi que no choca con obtenerPorId
+    @GetMapping("/pendientes")
+    public List<Emergencia> listarPendientes() {
+        return emergenciaService.obtenerPendientes();
     }
 
     @GetMapping("/{id}")
@@ -57,17 +48,29 @@ public class EmergenciaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}/convocatorias")
+    public List<Convocatoria> listarConvocatorias(@PathVariable Long id) {
+        return convocatoriaService.obtenerPorEmergencia(id);
+    }
+
+    @PostMapping("/{id}/convocatorias")
+    public ResponseEntity<Convocatoria> crearConvocatoria(@PathVariable Long id,
+                                                          @RequestBody ConvocatoriaRequest request) {
+        // Relevamiento: crea la convocatoria con sus lotes y completa "Desglosar Lotes" en Bonita
+        Convocatoria nueva = convocatoriaService.crearRelevamiento(id, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nueva);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<Emergencia> actualizar(@PathVariable Long id, @RequestBody Emergencia detalles) {
         return emergenciaService.obtenerPorId(id).map(existente -> {
+            // fechaCreacion, caseId y creadoPor NO se pisan con el body: los conserva el registro existente
             existente.setTipoDesastre(detalles.getTipoDesastre());
             existente.setNivelGravedad(detalles.getNivelGravedad());
             existente.setZonaAfectada(detalles.getZonaAfectada());
-            existente.setFechaCreacion(detalles.getFechaCreacion());
             existente.setDescripcion(detalles.getDescripcion());
             existente.setProyecto(detalles.getProyecto());
-            existente.setCreadoPor(detalles.getCreadoPor());
-            
+
             Emergencia actualizado = emergenciaService.guardar(existente);
             return ResponseEntity.ok(actualizado);
         }).orElse(ResponseEntity.notFound().build());

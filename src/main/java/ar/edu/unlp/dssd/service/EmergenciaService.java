@@ -1,10 +1,12 @@
 package ar.edu.unlp.dssd.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import ar.edu.unlp.dssd.model.Emergencia;
 import ar.edu.unlp.dssd.repository.EmergenciaRepository;
@@ -16,30 +18,47 @@ public class EmergenciaService {
     private EmergenciaRepository emergenciaRepository;
 
     @Autowired
-    private BonitaService bonitaService; // Inyectamos el servicio de Bonita
+    private BonitaService bonitaService;
 
+    /**
+     * Registra una emergencia nueva y le crea su caso en Bonita (un caso por emergencia).
+     *
+     * Es transaccional: si Bonita falla, la excepcion (BonitaException) hace rollback y la
+     * emergencia NO queda guardada sin caso. Necesitamos guardar primero para tener el id,
+     * porque Bonita lo recibe en el contrato de inicio.
+     *
+     * Limitacion: Bonita no participa de la transaccion. Si el caso se creo y despues falla un
+     * paso posterior (ej: completarPasosIniciales), la base hace rollback pero el caso queda
+     * huerfano en Bonita.
+     */
+    @Transactional
+    public Emergencia crear(Emergencia emergencia) {
+        // Ignoramos lo que venga del cliente en estos campos: los define el servidor
+        emergencia.setId(null);
+        emergencia.setCaseId(null);
+        emergencia.setFechaCreacion(LocalDate.now());
+
+        Emergencia guardada = emergenciaRepository.save(emergencia);
+
+        Long caseId = bonitaService.iniciarInstanciaEmergencia(guardada.getId(), guardada.getTipoDesastre());
+        bonitaService.completarPasosIniciales(caseId, guardada.getId());
+
+        guardada.setCaseId(caseId);
+        return emergenciaRepository.save(guardada);
+    }
+
+    /** Solo persiste (sin tocar Bonita). Se usa para las actualizaciones. */
     public Emergencia guardar(Emergencia emergencia) {
-        // 1. Guardar en la base de datos local (PostgreSQL)
-        Emergencia emergenciaGuardada = emergenciaRepository.save(emergencia);
-
-        // 2. Comunicarse con Bonita para iniciar la instancia
-        try {
-            bonitaService.iniciarInstanciaEmergencia(
-                emergenciaGuardada.getId(),
-                emergenciaGuardada.getTipoDesastre()
-            );
-        } catch (Exception e) {
-            // Capturamos la excepción para que, si Bonita está apagado o falla,
-            // la emergencia se guarde igual en PostgreSQL y el frontend no arroje error.
-            System.err.println("Advertencia: No se pudo iniciar la instancia en Bonita BPM. Detalle: " + e.getMessage());
-        }
-
-        // 3. Retornar la emergencia ya guardada
-        return emergenciaGuardada;
+        return emergenciaRepository.save(emergencia);
     }
 
     public List<Emergencia> obtenerTodos() {
         return emergenciaRepository.findAll();
+    }
+
+    /** Emergencias sin convocatoria publicada (las que el coordinador todavia tiene que gestionar). */
+    public List<Emergencia> obtenerPendientes() {
+        return emergenciaRepository.findPendientes();
     }
 
     public Optional<Emergencia> obtenerPorId(Long id) {

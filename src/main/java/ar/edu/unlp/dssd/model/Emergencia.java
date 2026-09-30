@@ -29,6 +29,10 @@ public class Emergencia {
 
     private String descripcion;
 
+    // Id del caso (instancia del proceso) que Bonita creo para esta emergencia
+    @Column(name = "case_id")
+    private Long caseId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proyecto_id")
     private Proyecto proyecto;
@@ -88,6 +92,14 @@ public class Emergencia {
 
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
+    }
+
+    public Long getCaseId() {
+        return caseId;
+    }
+
+    public void setCaseId(Long caseId) {
+        this.caseId = caseId;
     }
 
     public Proyecto getProyecto() {

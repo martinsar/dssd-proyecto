@@ -1,6 +1,7 @@
 package ar.edu.unlp.dssd.model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -15,16 +16,19 @@ public class Convocatoria {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String estado;
+    // Se guarda como texto ("BORRADOR", "PUBLICADA", ...) para que la columna varchar existente siga sirviendo
+    @Enumerated(EnumType.STRING)
+    private EstadoConvocatoria estado;
 
     @Column(name = "fecha_creacion")
     private LocalDate fechaCreacion;
 
+    // Apertura y cierre llevan hora (el cierre se manda a Bonita como fecha y hora)
     @Column(name = "fecha_apertura")
-    private LocalDate fechaApertura;
+    private LocalDateTime fechaApertura;
 
     @Column(name = "fecha_cierre")
-    private LocalDate fechaCierre;
+    private LocalDateTime fechaCierre;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emergencia_id")
@@ -48,11 +52,11 @@ public class Convocatoria {
         this.id = id;
     }
 
-    public String getEstado() {
+    public EstadoConvocatoria getEstado() {
         return estado;
     }
 
-    public void setEstado(String estado) {
+    public void setEstado(EstadoConvocatoria estado) {
         this.estado = estado;
     }
 
@@ -64,19 +68,19 @@ public class Convocatoria {
         this.fechaCreacion = fechaCreacion;
     }
 
-    public LocalDate getFechaApertura() {
+    public LocalDateTime getFechaApertura() {
         return fechaApertura;
     }
 
-    public void setFechaApertura(LocalDate fechaApertura) {
+    public void setFechaApertura(LocalDateTime fechaApertura) {
         this.fechaApertura = fechaApertura;
     }
 
-    public LocalDate getFechaCierre() {
+    public LocalDateTime getFechaCierre() {
         return fechaCierre;
     }
 
-    public void setFechaCierre(LocalDate fechaCierre) {
+    public void setFechaCierre(LocalDateTime fechaCierre) {
         this.fechaCierre = fechaCierre;
     }
 

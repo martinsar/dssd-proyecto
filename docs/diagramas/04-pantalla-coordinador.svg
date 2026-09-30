@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Pantalla del coordinador: elegir emergencia, relevar varios lotes y publicar</title>
+  <style>
+    .t { font-size: 18px; font-weight: 700; fill: #1f2328; }
+    .st { font-size: 12.5px; fill: #57606a; }
+    .ph { font-size: 14px; font-weight: 700; fill: #1f2328; }
+    .phs { font-size: 11.5px; fill: #57606a; }
+    .cell { font-size: 11.5px; fill: #1f2328; }
+    .quiet { font-size: 11px; fill: #57606a; }
+    .btn { font-size: 11.5px; font-weight: 600; fill: #1f2328; }
+    .btnp { font-size: 12px; font-weight: 700; fill: #ffffff; }
+    .api { font-size: 11px; font-family: Consolas, 'Courier New', monospace; fill: #0F6E56; }
+    .lbl { font-size: 11.5px; fill: #57606a; stroke: #fff; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; }
+    .panel { fill: #ffffff; stroke: #8c959f; stroke-width: 1.25; }
+    .field { fill: #ffffff; stroke: #afb8c1; stroke-width: 1; }
+    .edge { stroke: #444c56; stroke-width: 1.5; fill: none; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#444c56"/></marker>
+  </defs>
+  <rect width="1000" height="600" fill="#ffffff"/>
+
+  <text class="t" x="24" y="36">Una sola pantalla: elegir la emergencia, relevar todos sus lotes y publicar</text>
+  <text class="st" x="24" y="58">Pantalla del coordinador (Angular) · Tarea 4 · Cada botón principal completa una tarea de Bonita</text>
+
+  <!-- Panel 1 -->
+  <rect class="panel" x="24" y="84" width="296" height="400" rx="10"/>
+  <rect x="24" y="84" width="296" height="44" rx="10" fill="#EEEDFE"/>
+  <text class="ph" x="40" y="111">1 · Elegir emergencia</text>
+  <text class="phs" x="40" y="150">Emergencias sin convocatoria publicada</text>
+
+  <rect class="field" x="40" y="164" width="264" height="44" rx="6"/>
+  <text class="cell" x="52" y="182">#2 Maremoto · Alta · Olmos</text>
+  <text class="quiet" x="52" y="198">sin convocatoria</text>
+  <rect x="232" y="174" width="62" height="24" rx="6" fill="#ffffff" stroke="#534AB7"/>
+  <text class="btn" x="263" y="190" text-anchor="middle">Relevar</text>
+
+  <rect class="field" x="40" y="216" width="264" height="44" rx="6"/>
+  <text class="cell" x="52" y="234">#3 Incendio · Media · Gonnet</text>
+  <text class="quiet" x="52" y="250">sin convocatoria</text>
+  <rect x="232" y="226" width="62" height="24" rx="6" fill="#ffffff" stroke="#534AB7"/>
+  <text class="btn" x="263" y="242" text-anchor="middle">Relevar</text>
+
+  <rect class="field" x="40" y="268" width="264" height="44" rx="6"/>
+  <text class="cell" x="52" y="286">#4 Inundación · Alta · Berisso</text>
+  <text class="quiet" x="52" y="302">convocatoria en BORRADOR</text>
+  <rect x="232" y="278" width="62" height="24" rx="6" fill="#ffffff" stroke="#534AB7"/>
+  <text class="btn" x="263" y="294" text-anchor="middle">Publicar</text>
+
+  <text class="quiet" x="40" y="444">Al entrar a la pantalla:</text>
+  <text class="api" x="40" y="462">GET /api/emergencias/pendientes</text>
+
+  <!-- Panel 2 -->
+  <rect class="panel" x="352" y="84" width="296" height="400" rx="10"/>
+  <rect x="352" y="84" width="296" height="44" rx="10" fill="#E1F5EE"/>
+  <text class="ph" x="368" y="111">2 · Relevamiento</text>
+  <text class="phs" x="368" y="150">Tarea "Desglosar Lotes" · varios lotes a la vez</text>
+
+  <text class="quiet" x="368" y="176">Tipo de recurso</text>
+  <text class="quiet" x="508" y="176">Cant.</text>
+  <text class="quiet" x="552" y="176">Descripción</text>
+
+  <rect class="field" x="368" y="184" width="134" height="26" rx="4"/><text class="cell" x="376" y="201">Paramédicos ▾</text>
+  <rect class="field" x="508" y="184" width="38" height="26" rx="4"/><text class="cell" x="527" y="201" text-anchor="middle">5</text>
+  <rect class="field" x="552" y="184" width="66" height="26" rx="4"/><text class="cell" x="558" y="201">Turno…</text>
+  <text class="cell" x="626" y="201">✕</text>
+
+  <rect class="field" x="368" y="218" width="134" height="26" rx="4"/><text class="cell" x="376" y="235">Raciones ▾</text>
+  <rect class="field" x="508" y="218" width="38" height="26" rx="4"/><text class="cell" x="527" y="235" text-anchor="middle">1000</text>
+  <rect class="field" x="552" y="218" width="66" height="26" rx="4"/><text class="cell" x="558" y="235">Secas…</text>
+  <text class="cell" x="626" y="235">✕</text>
+
+  <rect class="field" x="368" y="252" width="134" height="26" rx="4"/><text class="cell" x="376" y="269">Agua potable ▾</text>
+  <rect class="field" x="508" y="252" width="38" height="26" rx="4"/><text class="cell" x="527" y="269" text-anchor="middle">500</text>
+  <rect class="field" x="552" y="252" width="66" height="26" rx="4"/><text class="cell" x="558" y="269">Bidones…</text>
+  <text class="cell" x="626" y="269">✕</text>
+
+  <rect x="368" y="290" width="120" height="26" rx="6" fill="#ffffff" stroke="#0F6E56" stroke-dasharray="4 3"/>
+  <text class="btn" x="428" y="307" text-anchor="middle">+ Agregar lote</text>
+
+  <rect x="368" y="340" width="264" height="34" rx="6" fill="#0F6E56"/>
+  <text class="btnp" x="500" y="362" text-anchor="middle">Guardar relevamiento</text>
+
+  <text class="quiet" x="368" y="444">Al guardar (convocatoria + todos los lotes):</text>
+  <text class="api" x="368" y="462">POST /api/emergencias/{id}/convocatorias</text>
+
+  <!-- Panel 3 -->
+  <rect class="panel" x="680" y="84" width="296" height="400" rx="10"/>
+  <rect x="680" y="84" width="296" height="44" rx="10" fill="#FAECE7"/>
+  <text class="ph" x="696" y="111">3 · Publicación formal</text>
+  <text class="phs" x="696" y="150">Tarea "Gestionar Convocatoria"</text>
+
+  <text class="quiet" x="696" y="176">Lotes relevados (solo lectura)</text>
+  <text class="cell" x="696" y="196">• 5 Paramédicos</text>
+  <text class="cell" x="696" y="214">• 1000 Raciones de alimento</text>
+  <text class="cell" x="696" y="232">• 500 Agua potable</text>
+
+  <text class="quiet" x="696" y="266">Apertura (opcional)</text>
+  <rect class="field" x="696" y="274" width="264" height="26" rx="4"/><text class="cell" x="704" y="291">01/10/2026 09:00</text>
+  <text class="quiet" x="696" y="318">Cierre de la ventana de ofertas</text>
+  <rect class="field" x="696" y="326" width="264" height="26" rx="4"/><text class="cell" x="704" y="343">10/10/2026 18:00</text>
+
+  <rect x="696" y="370" width="264" height="34" rx="6" fill="#993C1D"/>
+  <text class="btnp" x="828" y="392" text-anchor="middle">Publicar convocatoria</text>
+
+  <text class="quiet" x="696" y="444">Al publicar (la fecha va por el contrato):</text>
+  <text class="api" x="696" y="462">POST /api/convocatorias/{id}/publicar</text>
+
+  <!-- Transiciones -->
+  <path class="edge" d="M320 186 H348" marker-end="url(#arr)"/>
+  <path class="edge" d="M648 357 H676" marker-end="url(#arr)"/>
+  <path class="edge" d="M172 484 V520 H828 V488" marker-end="url(#arr)"/>
+  <text class="lbl" x="500" y="514" text-anchor="middle">si la emergencia ya tiene una convocatoria en BORRADOR, se va directo a publicar</text>
+
+  <!-- Referencia de errores -->
+  <text class="st" x="24" y="560">Errores: la pantalla muestra el mensaje de error.error que manda el backend (400 datos inválidos · 409 regla de negocio · 502 Bonita).</text>
+  <text class="st" x="24" y="580">Al publicar, la emergencia sale de la lista de pendientes.</text>
+</svg>

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Arquitectura RescueSync: Angular habla solo con el backend y el backend es el único que habla con Bonita</title>
+  <style>
+    .t { font-size: 18px; font-weight: 700; fill: #1f2328; }
+    .st { font-size: 12.5px; fill: #57606a; }
+    .name { font-size: 15px; font-weight: 700; fill: #1f2328; }
+    .line { font-size: 12px; fill: #1f2328; }
+    .quiet { font-size: 11.5px; fill: #57606a; }
+    .lbl { font-size: 12px; font-weight: 600; fill: #1f2328; stroke: #fff; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; }
+    .lbl2 { font-size: 11.5px; fill: #57606a; stroke: #fff; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; }
+    .edge { stroke: #444c56; stroke-width: 1.5; fill: none; }
+    .todo { stroke: #8c959f; stroke-width: 1.5; fill: none; stroke-dasharray: 6 5; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#444c56"/></marker>
+    <marker id="arr-todo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8c959f"/></marker>
+  </defs>
+  <rect width="1000" height="520" fill="#ffffff"/>
+
+  <text class="t" x="24" y="36">Angular habla solo con el backend; el backend es el único que habla con Bonita</text>
+  <text class="st" x="24" y="58">Arquitectura de RescueSync · Entrega 2 · Bonita se usa solo como orquestador (sin portal ni formularios)</text>
+
+  <!-- Frontend -->
+  <rect x="40" y="100" width="230" height="130" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1.5"/>
+  <text class="name" x="155" y="126" text-anchor="middle">Frontend Angular</text>
+  <text class="quiet" x="155" y="146" text-anchor="middle">Docker (angular_dev_env) · :4200</text>
+  <text class="line" x="56" y="174">Pantallas por rol: Municipio,</text>
+  <text class="line" x="56" y="192">Coordinador, ONG y Auditor</text>
+  <text class="line" x="56" y="210">Nunca llama a Bonita</text>
+
+  <!-- Backend -->
+  <rect x="385" y="100" width="250" height="130" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="2"/>
+  <text class="name" x="510" y="126" text-anchor="middle">Backend Spring Boot</text>
+  <text class="quiet" x="510" y="146" text-anchor="middle">Eclipse · :8082</text>
+  <text class="line" x="401" y="174">Reglas de negocio y validaciones</text>
+  <text class="line" x="401" y="192">Un usuario de Bonita por rol</text>
+  <text class="line" x="401" y="210">Rollback + 502 si Bonita falla</text>
+
+  <!-- PostgreSQL -->
+  <rect x="385" y="340" width="250" height="100" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="1.5"/>
+  <text class="name" x="510" y="366" text-anchor="middle">PostgreSQL</text>
+  <text class="quiet" x="510" y="386" text-anchor="middle">Docker (postgres_db) · :5432</text>
+  <text class="line" x="401" y="414">Schema dssd: emergencias, convocatorias,</text>
+  <text class="line" x="401" y="430">lotes y ofertas (con caseId)</text>
+
+  <!-- Bonita -->
+  <rect x="745" y="100" width="225" height="130" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1.5"/>
+  <text class="name" x="857" y="126" text-anchor="middle">Bonita (orquestador)</text>
+  <text class="quiet" x="857" y="146" text-anchor="middle">Bonita Studio · :8080</text>
+  <text class="line" x="761" y="174">Proceso GestionEmergencias</text>
+  <text class="line" x="761" y="192">Casos, tareas, timers,</text>
+  <text class="line" x="761" y="210">caminos alternativos</text>
+
+  <!-- Sistema Nacional (pendiente) -->
+  <rect x="745" y="340" width="225" height="100" rx="8" fill="#ffffff" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text class="name" x="857" y="366" text-anchor="middle">API Sistema Nacional</text>
+  <text class="quiet" x="857" y="386" text-anchor="middle">Entrega 3 · JWT · en la nube</text>
+  <text class="line" x="761" y="414">Validación por niveles y</text>
+  <text class="line" x="761" y="430">bloqueo de recursos</text>
+
+  <!-- Conexiones implementadas -->
+  <path class="edge" d="M270 150 H381" marker-end="url(#arr)"/>
+  <text class="lbl" x="327" y="140" text-anchor="middle">REST /api</text>
+  <text class="lbl2" x="327" y="170" text-anchor="middle">JSON</text>
+
+  <path class="edge" d="M510 230 V336" marker-end="url(#arr)"/>
+  <text class="lbl" x="522" y="280">JPA / Hibernate</text>
+
+  <path class="edge" d="M635 140 H741" marker-end="url(#arr)"/>
+  <text class="lbl" x="690" y="130" text-anchor="middle">API REST</text>
+  <text class="lbl2" x="690" y="158" text-anchor="middle">casos, tareas,</text>
+  <text class="lbl2" x="690" y="174" text-anchor="middle">mensajes</text>
+
+  <!-- Conexiones pendientes -->
+  <path class="todo" d="M745 205 H639" marker-end="url(#arr-todo)"/>
+  <text class="lbl2" x="690" y="226" text-anchor="middle">al vencer el timer:</text>
+  <text class="lbl2" x="690" y="242" text-anchor="middle">GET ofertas</text>
+
+  <path class="todo" d="M857 230 V336" marker-end="url(#arr-todo)"/>
+  <text class="lbl2" x="869" y="280">conector REST</text>
+
+  <!-- Referencia -->
+  <path class="edge" d="M40 486 H80" marker-end="url(#arr)"/>
+  <text class="quiet" x="90" y="490">implementado (rama feat/entrega2-bonita)</text>
+  <path class="todo" d="M380 486 H420" marker-end="url(#arr-todo)"/>
+  <text class="quiet" x="430" y="490">pendiente (Entrega 2 y 3)</text>
+</svg>

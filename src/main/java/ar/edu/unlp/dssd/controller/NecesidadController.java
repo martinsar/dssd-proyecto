@@ -33,24 +33,13 @@ public class NecesidadController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Necesidad> actualizar(@PathVariable Long id, @RequestBody Necesidad detalles) {
-        return necesidadService.obtenerPorId(id).map(existente -> {
-            existente.setFechaCreacion(detalles.getFechaCreacion());
-            existente.setDescripcion(detalles.getDescripcion());
-            existente.setCantidad(detalles.getCantidad());
-            existente.setConvocatoria(detalles.getConvocatoria());
-            existente.setTipoRecurso(detalles.getTipoRecurso());
-            
-            Necesidad actualizado = necesidadService.guardar(existente);
-            return ResponseEntity.ok(actualizado);
-        }).orElse(ResponseEntity.notFound().build());
+        // Las reglas (convocatoria en BORRADOR, 404 si no existe) viven en el servicio
+        return ResponseEntity.ok(necesidadService.actualizar(id, detalles));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        if (necesidadService.obtenerPorId(id).isPresent()) {
-            necesidadService.eliminar(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+        necesidadService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1030" viewBox="0 0 1000 1030" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Convocatoria en dos pasos: relevamiento (Desglosar Lotes) y publicación (Gestionar Convocatoria)</title>
+  <style>
+    .t { font-size: 18px; font-weight: 700; fill: #1f2328; }
+    .st { font-size: 12.5px; fill: #57606a; }
+    .name { font-size: 15px; font-weight: 700; fill: #1f2328; }
+    .quiet { font-size: 11.5px; fill: #57606a; }
+    .band { font-size: 13px; font-weight: 700; fill: #1f2328; }
+    .life { stroke: #8c959f; stroke-width: 1; stroke-dasharray: 4 4; }
+    .msg { stroke: #444c56; stroke-width: 1.5; fill: none; }
+    .ret { stroke: #444c56; stroke-width: 1.25; fill: none; stroke-dasharray: 6 4; }
+    .lbl { font-size: 12px; font-weight: 600; fill: #1f2328; stroke: #fff; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; }
+    .lbl2 { font-size: 11.5px; fill: #57606a; stroke: #fff; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; }
+    .note { font-size: 12.5px; fill: #1f2328; }
+    .hint { font-size: 11.5px; font-style: italic; fill: #57606a; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#444c56"/></marker>
+  </defs>
+  <rect width="1000" height="1030" fill="#ffffff"/>
+
+  <text class="t" x="24" y="36">Convocatoria en dos pasos: qué se necesita (relevamiento) y cuándo (publicación)</text>
+  <text class="st" x="24" y="58">Tareas 4 y 5 · Decisiones 14, 15 y 17 · El backend actúa como el Coordinador (usuario agente_coordinador_1)</text>
+
+  <!-- Cabeceras -->
+  <rect x="20" y="72" width="160" height="48" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1.5"/>
+  <text class="name" x="100" y="92" text-anchor="middle">Angular</text>
+  <text class="quiet" x="100" y="110" text-anchor="middle">Coordinador · :4200</text>
+
+  <rect x="210" y="72" width="160" height="48" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="1.5"/>
+  <text class="name" x="290" y="92" text-anchor="middle">PostgreSQL</text>
+  <text class="quiet" x="290" y="110" text-anchor="middle">Docker · :5432</text>
+
+  <rect x="400" y="72" width="160" height="48" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="2"/>
+  <text class="name" x="480" y="92" text-anchor="middle">Backend Spring</text>
+  <text class="quiet" x="480" y="110" text-anchor="middle">Eclipse · :8082</text>
+
+  <rect x="790" y="72" width="160" height="48" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1.5"/>
+  <text class="name" x="870" y="92" text-anchor="middle">Bonita</text>
+  <text class="quiet" x="870" y="110" text-anchor="middle">Studio · :8080</text>
+
+  <!-- Líneas de vida -->
+  <line class="life" x1="100" y1="120" x2="100" y2="950"/>
+  <line class="life" x1="290" y1="120" x2="290" y2="950"/>
+  <line class="life" x1="480" y1="120" x2="480" y2="950"/>
+  <line class="life" x1="870" y1="120" x2="870" y2="950"/>
+
+  <!-- Paso 1: relevamiento -->
+  <rect x="20" y="132" width="960" height="26" rx="4" fill="#F6F8FA" stroke="#d0d7de"/>
+  <text class="band" x="32" y="150">1 · Relevamiento — tarea "Desglosar Lotes"</text>
+
+  <text class="lbl" x="290" y="182" text-anchor="middle">GET /api/emergencias/pendientes</text>
+  <text class="lbl2" x="290" y="196" text-anchor="middle">emergencias sin convocatoria publicada</text>
+  <path class="msg" d="M100 204 H476" marker-end="url(#arr)"/>
+
+  <text class="lbl2" x="290" y="238" text-anchor="middle">lista de emergencias</text>
+  <path class="ret" d="M480 246 H104" marker-end="url(#arr)"/>
+
+  <text class="lbl" x="290" y="282" text-anchor="middle">POST /api/emergencias/{id}/convocatorias</text>
+  <text class="lbl2" x="290" y="296" text-anchor="middle">{ necesidades: [ { tipoRecursoId, cantidad, descripcion }, … ] }</text>
+  <path class="msg" d="M100 304 H476" marker-end="url(#arr)"/>
+
+  <text class="lbl" x="385" y="338" text-anchor="middle">INSERT convocatoria</text>
+  <text class="lbl2" x="385" y="352" text-anchor="middle">estado BORRADOR + cada lote</text>
+  <path class="msg" d="M480 360 H294" marker-end="url(#arr)"/>
+
+  <text class="lbl" x="675" y="396" text-anchor="middle">login agente_coordinador_1 (actor Centro Coordinador)</text>
+  <text class="lbl2" x="675" y="410" text-anchor="middle">"Desglosar Lotes": GET humanTask · PUT userTask · POST execution {}</text>
+  <path class="msg" d="M480 418 H866" marker-end="url(#arr)"/>
+
+  <text class="lbl2" x="675" y="452" text-anchor="middle">el caso queda en "Gestionar Convocatoria"</text>
+  <path class="ret" d="M870 460 H484" marker-end="url(#arr)"/>
+
+  <text class="lbl2" x="290" y="494" text-anchor="middle">201 Created (convocatoria BORRADOR con sus lotes)</text>
+  <path class="ret" d="M480 502 H104" marker-end="url(#arr)"/>
+
+  <text class="hint" x="32" y="534">Mientras la convocatoria está en BORRADOR, los lotes se pueden corregir (agregar o quitar).</text>
+
+  <!-- Paso 2: publicación -->
+  <rect x="20" y="552" width="960" height="26" rx="4" fill="#F6F8FA" stroke="#d0d7de"/>
+  <text class="band" x="32" y="570">2 · Publicación formal — tarea "Gestionar Convocatoria"</text>
+
+  <text class="lbl" x="290" y="602" text-anchor="middle">POST /api/convocatorias/{id}/publicar</text>
+  <text class="lbl2" x="290" y="616" text-anchor="middle">{ fechaApertura (opcional), fechaCierre (futura) }</text>
+  <path class="msg" d="M100 624 H476" marker-end="url(#arr)"/>
+
+  <text class="lbl" x="675" y="658" text-anchor="middle">login agente_coordinador_1</text>
+  <text class="lbl2" x="675" y="672" text-anchor="middle">"Gestionar Convocatoria": GET humanTask · PUT userTask</text>
+  <path class="msg" d="M480 680 H866" marker-end="url(#arr)"/>
+
+  <text class="lbl" x="675" y="716" text-anchor="middle">POST execution { idConvocatoriaInput, fechaCierreInput }</text>
+  <text class="lbl2" x="675" y="730" text-anchor="middle">contrato → operaciones → variables idConvocatoria y fechaCierre</text>
+  <path class="msg" d="M480 738 H866" marker-end="url(#arr)"/>
+
+  <text class="lbl" x="675" y="774" text-anchor="middle">POST /API/bpm/message "Recibe una notificación"</text>
+  <text class="lbl2" x="675" y="788" text-anchor="middle">correlación idEmergencia → destraba "Recibir Notificación"</text>
+  <path class="msg" d="M480 796 H866" marker-end="url(#arr)"/>
+
+  <text class="lbl2" x="675" y="830" text-anchor="middle">el caso pasa al lane ONG; los timers usan fechaCierre</text>
+  <path class="ret" d="M870 838 H484" marker-end="url(#arr)"/>
+
+  <text class="lbl" x="385" y="872" text-anchor="middle">UPDATE convocatoria</text>
+  <text class="lbl2" x="385" y="886" text-anchor="middle">PUBLICADA + fechas · commit</text>
+  <path class="msg" d="M480 894 H294" marker-end="url(#arr)"/>
+
+  <text class="lbl2" x="290" y="928" text-anchor="middle">200 OK (convocatoria PUBLICADA)</text>
+  <path class="ret" d="M480 936 H104" marker-end="url(#arr)"/>
+
+  <!-- Nota de error -->
+  <rect x="20" y="964" width="960" height="48" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="1.25"/>
+  <text class="note" x="36" y="984">Si Bonita falla: rollback y 502 { "error": "..." }. En el relevamiento, la convocatoria no se crea;</text>
+  <text class="note" x="36" y="1002">en la publicación, queda en BORRADOR y se puede reintentar.</text>
+</svg>
