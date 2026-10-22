@@ -40,6 +40,11 @@ public class ConvocatoriaController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}/ofertas/validacion")
+    public ResponseEntity<Boolean> validarOfertas(@PathVariable Long id) {
+        return ResponseEntity.ok(convocatoriaService.validarOfertas(id));
+    }
+
     @PostMapping("/{id}/publicar")
     public Convocatoria publicar(@PathVariable Long id, @RequestBody PublicacionRequest request) {
         return convocatoriaService.publicar(id, request);

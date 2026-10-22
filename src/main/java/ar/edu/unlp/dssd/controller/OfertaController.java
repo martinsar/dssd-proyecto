@@ -1,9 +1,11 @@
 package ar.edu.unlp.dssd.controller;
 
 import java.util.List;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ar.edu.unlp.dssd.dto.OfertaRequest;
 import ar.edu.unlp.dssd.model.Oferta;
 import ar.edu.unlp.dssd.service.OfertaService;
 
@@ -16,8 +18,8 @@ public class OfertaController {
 
     // 1. CREAR (POST)
     @PostMapping
-    public Oferta crear(@RequestBody Oferta oferta) {
-        return ofertaService.guardar(oferta);
+    public Oferta crear(@Valid @RequestBody OfertaRequest request) {
+        return ofertaService.crear(request);
     }
 
     // 2. LISTAR TODOS (GET)

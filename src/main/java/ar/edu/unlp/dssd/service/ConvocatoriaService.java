@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,9 +18,12 @@ import ar.edu.unlp.dssd.exception.ReglaNegocioException;
 import ar.edu.unlp.dssd.model.Convocatoria;
 import ar.edu.unlp.dssd.model.Emergencia;
 import ar.edu.unlp.dssd.model.EstadoConvocatoria;
+import ar.edu.unlp.dssd.model.Necesidad;
+import ar.edu.unlp.dssd.model.Oferta;
 import ar.edu.unlp.dssd.repository.ConvocatoriaRepository;
 import ar.edu.unlp.dssd.repository.EmergenciaRepository;
 import ar.edu.unlp.dssd.repository.NecesidadRepository;
+import ar.edu.unlp.dssd.repository.OfertaRepository;
 
 @Service
 public class ConvocatoriaService {
@@ -31,6 +36,9 @@ public class ConvocatoriaService {
 
     @Autowired
     private NecesidadRepository necesidadRepository;
+
+    @Autowired
+    private OfertaRepository ofertaRepository;
 
     @Autowired
     private NecesidadService necesidadService;
@@ -52,6 +60,32 @@ public class ConvocatoriaService {
 
     public void eliminar(Long id) {
         convocatoriaRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean validarOfertas(Long convocatoriaId) {
+        Convocatoria convocatoria = convocatoriaRepository.findById(convocatoriaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Convocatoria no encontrada: " + convocatoriaId));
+
+        List<Necesidad> necesidades = necesidadRepository.findByConvocatoriaId(convocatoria.getId());
+        List<Oferta> ofertas = ofertaRepository.findByConvocatoriaId(convocatoria.getId());
+
+        Map<Long, Long> necesidadesPorTipoRecurso = necesidades.stream()
+                .collect(Collectors.groupingBy(
+                        necesidad -> necesidad.getTipoRecurso().getId(),
+                        Collectors.summingLong(Necesidad::getCantidad)));
+
+        Map<Long, Long> ofertasPorTipoRecurso = ofertas.stream()
+                .collect(Collectors.groupingBy(
+                        oferta -> oferta.getTipoRecurso().getId(),
+                        Collectors.summingLong(Oferta::getCantidad)));
+
+        boolean coberturaCompleta = necesidadesPorTipoRecurso.entrySet().stream()
+                .allMatch(necesidad ->
+                        ofertasPorTipoRecurso.getOrDefault(necesidad.getKey(), 0L)
+                                >= necesidad.getValue());
+
+        return coberturaCompleta;
     }
 
     public List<Convocatoria> obtenerPorEmergencia(Long emergenciaId) {
