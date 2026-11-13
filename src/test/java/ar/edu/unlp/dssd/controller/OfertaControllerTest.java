@@ -75,7 +75,7 @@ class OfertaControllerTest {
                 {"cantidad": 10, "descripcion": "Agua", "tipo_recurso_id": "1",
                  "organizacion_id": "2", "convocatoria_id": "7"}
                 """))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.convocatoria.id").value(7))
                 .andExpect(jsonPath("$.organizacion.id").value(2))
                 .andExpect(jsonPath("$.tipoRecurso.id").value(1));
