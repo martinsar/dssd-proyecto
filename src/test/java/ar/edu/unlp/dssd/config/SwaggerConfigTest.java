@@ -2,8 +2,27 @@ package ar.edu.unlp.dssd.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.jupiter.api.Test;
+import java.lang.reflect.Method;
+import java.util.List;
 
+import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import ar.edu.unlp.dssd.controller.ConvocatoriaController;
+import ar.edu.unlp.dssd.controller.EmergenciaController;
+import ar.edu.unlp.dssd.controller.NecesidadController;
+import ar.edu.unlp.dssd.controller.OfertaController;
+import ar.edu.unlp.dssd.controller.OrganizacionController;
+import ar.edu.unlp.dssd.controller.ProyectoController;
+import ar.edu.unlp.dssd.controller.TipoEmergenciaController;
+import ar.edu.unlp.dssd.controller.TipoOrganizacionController;
+import ar.edu.unlp.dssd.controller.TipoRecursoController;
+import ar.edu.unlp.dssd.controller.UsuarioController;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
@@ -47,6 +66,44 @@ class SwaggerConfigTest {
         config.restResponsesCustomizer().customise(openApi);
 
         assertThat(crear.getResponses().get("201").getContent()).isSameAs(success.getContent());
+    }
+
+    @Test
+    void todosLosEndpointsTienenResumenYDescripcion() {
+        List<Class<?>> controllers = List.of(
+                ConvocatoriaController.class,
+                EmergenciaController.class,
+                NecesidadController.class,
+                OfertaController.class,
+                OrganizacionController.class,
+                ProyectoController.class,
+                TipoEmergenciaController.class,
+                TipoOrganizacionController.class,
+                TipoRecursoController.class,
+                UsuarioController.class);
+
+        for (Class<?> controller : controllers) {
+            for (Method method : controller.getDeclaredMethods()) {
+                if (isEndpoint(method)) {
+                    io.swagger.v3.oas.annotations.Operation operation =
+                            method.getAnnotation(io.swagger.v3.oas.annotations.Operation.class);
+                    assertThat(operation)
+                            .as("%s.%s debe tener @Operation", controller.getSimpleName(), method.getName())
+                            .isNotNull();
+                    assertThat(operation.summary()).isNotBlank();
+                    assertThat(operation.description()).isNotBlank();
+                }
+            }
+        }
+    }
+
+    private boolean isEndpoint(Method method) {
+        return method.isAnnotationPresent(RequestMapping.class)
+                || method.isAnnotationPresent(GetMapping.class)
+                || method.isAnnotationPresent(PostMapping.class)
+                || method.isAnnotationPresent(PutMapping.class)
+                || method.isAnnotationPresent(PatchMapping.class)
+                || method.isAnnotationPresent(DeleteMapping.class);
     }
 
     private Operation operationWithOkResponse() {

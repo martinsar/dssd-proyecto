@@ -50,6 +50,8 @@ public class ConvocatoriaController {
     }
 
     @GetMapping("/{id}/ofertas/validacion")
+    @Operation(summary = "Validar ofertas de una convocatoria",
+            description = "Indica si las ofertas registradas para la convocatoria cumplen las necesidades asociadas.")
     public ResponseEntity<Boolean> validarOfertas(@PathVariable Long id) {
         return ResponseEntity.ok(convocatoriaService.validarOfertas(id));
     }
