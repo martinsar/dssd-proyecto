@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="850" viewBox="0 0 1000 850" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Alta de emergencia: un formulario crea un caso en Bonita que avanza solo hasta el coordinador</title>
+  <style>
+    .t { font-size: 18px; font-weight: 700; fill: #1f2328; }
+    .st { font-size: 12.5px; fill: #57606a; }
+    .name { font-size: 15px; font-weight: 700; fill: #1f2328; }
+    .quiet { font-size: 11.5px; fill: #57606a; }
+    .life { stroke: #8c959f; stroke-width: 1; stroke-dasharray: 4 4; }
+    .msg { stroke: #444c56; stroke-width: 1.5; fill: none; }
+    .ret { stroke: #444c56; stroke-width: 1.25; fill: none; stroke-dasharray: 6 4; }
+    .lbl { font-size: 12px; font-weight: 600; fill: #1f2328; stroke: #fff; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; }
+    .lbl2 { font-size: 11.5px; fill: #57606a; stroke: #fff; stroke-width: 4px; paint-order: stroke; stroke-linejoin: round; }
+    .note { font-size: 12.5px; fill: #1f2328; }
+  </style>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#444c56"/></marker>
+  </defs>
+  <rect width="1000" height="850" fill="#ffffff"/>
+
+  <text class="t" x="24" y="36">Un formulario, un caso: el backend lleva el caso solo hasta "Desglosar Lotes"</text>
+  <text class="st" x="24" y="58">Flujo de alta de emergencia · Tareas 1 y 6 · El backend actúa como el Municipio (usuario olmos)</text>
+
+  <!-- Cabeceras -->
+  <rect x="20" y="72" width="160" height="48" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="1.5"/>
+  <text class="name" x="100" y="92" text-anchor="middle">Angular</text>
+  <text class="quiet" x="100" y="110" text-anchor="middle">Operador · :4200</text>
+
+  <rect x="210" y="72" width="160" height="48" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="1.5"/>
+  <text class="name" x="290" y="92" text-anchor="middle">PostgreSQL</text>
+  <text class="quiet" x="290" y="110" text-anchor="middle">Docker · :5432</text>
+
+  <rect x="400" y="72" width="160" height="48" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="2"/>
+  <text class="name" x="480" y="92" text-anchor="middle">Backend Spring</text>
+  <text class="quiet" x="480" y="110" text-anchor="middle">Eclipse · :8082</text>
+
+  <rect x="790" y="72" width="160" height="48" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="1.5"/>
+  <text class="name" x="870" y="92" text-anchor="middle">Bonita</text>
+  <text class="quiet" x="870" y="110" text-anchor="middle">Studio · :8080</text>
+
+  <!-- Líneas de vida -->
+  <line class="life" x1="100" y1="120" x2="100" y2="770"/>
+  <line class="life" x1="290" y1="120" x2="290" y2="770"/>
+  <line class="life" x1="480" y1="120" x2="480" y2="770"/>
+  <line class="life" x1="870" y1="120" x2="870" y2="770"/>
+
+  <!-- 1 -->
+  <text class="lbl" x="290" y="148" text-anchor="middle">1. POST /api/emergencias</text>
+  <text class="lbl2" x="290" y="162" text-anchor="middle">JSON del formulario de alta</text>
+  <path class="msg" d="M100 170 H476" marker-end="url(#arr)"/>
+
+  <!-- 2 -->
+  <text class="lbl" x="385" y="204" text-anchor="middle">2. INSERT emergencia</text>
+  <text class="lbl2" x="385" y="218" text-anchor="middle">fechaCreacion = hoy</text>
+  <path class="msg" d="M480 226 H294" marker-end="url(#arr)"/>
+
+  <!-- 3 -->
+  <text class="lbl" x="675" y="262" text-anchor="middle">3. POST /bonita/loginservice</text>
+  <text class="lbl2" x="675" y="276" text-anchor="middle">usuario olmos (actor Municipio)</text>
+  <path class="msg" d="M480 284 H866" marker-end="url(#arr)"/>
+
+  <!-- 4 -->
+  <text class="lbl2" x="675" y="318" text-anchor="middle">cookies JSESSIONID + X-Bonita-API-Token</text>
+  <path class="ret" d="M870 326 H484" marker-end="url(#arr)"/>
+
+  <!-- 5 -->
+  <text class="lbl" x="675" y="362" text-anchor="middle">4. GET /API/bpm/process?f=name=GestionEmergencias</text>
+  <text class="lbl2" x="675" y="376" text-anchor="middle">nombre exacto + activationState=ENABLED → processId</text>
+  <path class="msg" d="M480 384 H866" marker-end="url(#arr)"/>
+
+  <!-- 6 -->
+  <text class="lbl" x="675" y="420" text-anchor="middle">5. POST /API/bpm/process/{id}/instantiation</text>
+  <text class="lbl2" x="675" y="434" text-anchor="middle">contrato: idEmergenciaInput, tipoDesastreInput</text>
+  <path class="msg" d="M480 442 H866" marker-end="url(#arr)"/>
+
+  <!-- 7 -->
+  <text class="lbl2" x="675" y="476" text-anchor="middle">{ caseId }: el caso queda en "Registrar Emergencia."</text>
+  <path class="ret" d="M870 484 H484" marker-end="url(#arr)"/>
+
+  <!-- 8 -->
+  <text class="lbl" x="675" y="520" text-anchor="middle">6. "Registrar Emergencia.": buscar, asignar y ejecutar</text>
+  <text class="lbl2" x="675" y="534" text-anchor="middle">GET humanTask · PUT userTask · POST execution {}  (paso vacío)</text>
+  <path class="msg" d="M480 542 H866" marker-end="url(#arr)"/>
+
+  <!-- 9 -->
+  <text class="lbl" x="675" y="578" text-anchor="middle">7. POST /API/bpm/message "Se recibe un alerta de emergencia"</text>
+  <text class="lbl2" x="675" y="592" text-anchor="middle">correlación idEmergencia → destraba "Recibir Alerta"</text>
+  <path class="msg" d="M480 600 H866" marker-end="url(#arr)"/>
+
+  <!-- 10 -->
+  <text class="lbl2" x="675" y="634" text-anchor="middle">el caso queda en "Desglosar Lotes", esperando al coordinador</text>
+  <path class="ret" d="M870 642 H484" marker-end="url(#arr)"/>
+
+  <!-- 11 -->
+  <text class="lbl" x="385" y="678" text-anchor="middle">8. UPDATE case_id</text>
+  <text class="lbl2" x="385" y="692" text-anchor="middle">commit</text>
+  <path class="msg" d="M480 700 H294" marker-end="url(#arr)"/>
+
+  <!-- 12 -->
+  <text class="lbl2" x="290" y="742" text-anchor="middle">201 Created (emergencia con caseId)</text>
+  <path class="ret" d="M480 750 H104" marker-end="url(#arr)"/>
+
+  <!-- Nota de error -->
+  <rect x="20" y="784" width="960" height="48" rx="8" fill="#FCEBEB" stroke="#A32D2D" stroke-width="1.25"/>
+  <text class="note" x="36" y="804">Si Bonita falla en cualquier paso: rollback (la emergencia no queda guardada sin caso) y el backend</text>
+  <text class="note" x="36" y="822">responde 502 { "error": "..." }. Nunca se crea más de un caso por emergencia.</text>
+</svg>

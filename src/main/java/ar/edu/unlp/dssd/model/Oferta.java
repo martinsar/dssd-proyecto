@@ -1,7 +1,9 @@
 package ar.edu.unlp.dssd.model;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -15,7 +17,10 @@ public class Oferta {
 
     private Integer cantidad;
     private String descripcion;
-    private String estado;
+    // [Entrega final] Se guarda como texto en una columna varchar (sin CHECK)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", columnDefinition = "varchar(255)")
+    private EstadoOferta estado;
     private String tipo;
 
     @Column(name = "fecha_creacion")
@@ -42,6 +47,35 @@ public class Oferta {
     @JoinColumn(name = "convocatoria_id")
     private Convocatoria convocatoria;
 
+    // [Entrega final] Oferta conjunta a la que pertenece el lote (null si es individual)
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "oferta_conjunta_id")
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.SET_NULL)
+    private OfertaConjunta ofertaConjunta;
+
+    // [Entrega final] Versión vigente del lote (cada cambio la incrementa)
+    @Column(name = "numero_version")
+    private Integer numeroVersion;
+
+    @Column(name = "fecha_modificacion")
+    private LocalDateTime fechaModificacion;
+
+    @Column(name = "fecha_adjudicacion")
+    private LocalDateTime fechaAdjudicacion;
+
+    @Column(name = "fecha_finalizacion")
+    private LocalDateTime fechaFinalizacion;
+
+    @Column(name = "informe_finalizacion", length = 500)
+    private String informeFinalizacion;
+
+
+    /** [Entrega final] Se pasa a la versión siguiente y se registra la fecha del cambio */
+    public void avanzarVersion() {
+        this.numeroVersion = (numeroVersion == null ? 1 : numeroVersion) + 1;
+        this.fechaModificacion = LocalDateTime.now();
+    }
 
     public Long getId() {
         return id;
@@ -67,11 +101,11 @@ public class Oferta {
         this.descripcion = descripcion;
     }
 
-    public String getEstado() {
+    public EstadoOferta getEstado() {
         return estado;
     }
 
-    public void setEstado(String estado) {
+    public void setEstado(EstadoOferta estado) {
         this.estado = estado;
     }
 
@@ -137,5 +171,53 @@ public class Oferta {
 
     public void setConvocatoria(Convocatoria convocatoria) {
         this.convocatoria = convocatoria;
+    }
+
+    public OfertaConjunta getOfertaConjunta() {
+        return ofertaConjunta;
+    }
+
+    public void setOfertaConjunta(OfertaConjunta ofertaConjunta) {
+        this.ofertaConjunta = ofertaConjunta;
+    }
+
+    public Integer getNumeroVersion() {
+        return numeroVersion;
+    }
+
+    public void setNumeroVersion(Integer numeroVersion) {
+        this.numeroVersion = numeroVersion;
+    }
+
+    public LocalDateTime getFechaModificacion() {
+        return fechaModificacion;
+    }
+
+    public void setFechaModificacion(LocalDateTime fechaModificacion) {
+        this.fechaModificacion = fechaModificacion;
+    }
+
+    public LocalDateTime getFechaAdjudicacion() {
+        return fechaAdjudicacion;
+    }
+
+    public void setFechaAdjudicacion(LocalDateTime fechaAdjudicacion) {
+        this.fechaAdjudicacion = fechaAdjudicacion;
+    }
+
+    public LocalDateTime getFechaFinalizacion() {
+        return fechaFinalizacion;
+    }
+
+    public void setFechaFinalizacion(LocalDateTime fechaFinalizacion) {
+        this.fechaFinalizacion = fechaFinalizacion;
+    }
+
+    public String getInformeFinalizacion() {
+        return informeFinalizacion;
+    }
+
+    public void setInformeFinalizacion(String informeFinalizacion) {
+        this.informeFinalizacion = informeFinalizacion;
     }
 }

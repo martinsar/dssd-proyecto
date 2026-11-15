@@ -26,6 +26,16 @@ public class Usuario {
     @Column(name = "fecha_creacion")
     private LocalDate fechaCreacion;
 
+    // [Entrega final] Usuario de Bonita vinculado (user_name)
+    @Column(name = "usuario_bonita", length = 100, unique = true)
+    private String usuarioBonita;
+
+    // [Entrega final] Organización que representa (solo perfil ONG)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organizacion_id")
+    @JsonIgnoreProperties({"registradaPor", "validadoPor", "hibernateLazyInitializer", "handler"})
+    private Organizacion organizacion;
+
     @JsonIgnore
     @OneToMany(mappedBy = "creadoPor", cascade = CascadeType.ALL)
     private List<Emergencia> emergenciasCreadas;
@@ -85,6 +95,22 @@ public class Usuario {
 
     public void setFechaCreacion(LocalDate fechaCreacion) {
         this.fechaCreacion = fechaCreacion;
+    }
+
+    public String getUsuarioBonita() {
+        return usuarioBonita;
+    }
+
+    public void setUsuarioBonita(String usuarioBonita) {
+        this.usuarioBonita = usuarioBonita;
+    }
+
+    public Organizacion getOrganizacion() {
+        return organizacion;
+    }
+
+    public void setOrganizacion(Organizacion organizacion) {
+        this.organizacion = organizacion;
     }
 
     public List<Emergencia> getEmergenciasCreadas() {
