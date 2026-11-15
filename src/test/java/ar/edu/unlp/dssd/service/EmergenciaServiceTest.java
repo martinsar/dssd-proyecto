@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +24,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import ar.edu.unlp.dssd.exception.BonitaException;
 import ar.edu.unlp.dssd.model.Emergencia;
+import ar.edu.unlp.dssd.model.Usuario;
 import ar.edu.unlp.dssd.repository.EmergenciaRepository;
+import ar.edu.unlp.dssd.repository.UsuarioRepository;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.SesionUsuario;
 
 @ExtendWith(MockitoExtension.class)
 class EmergenciaServiceTest {
@@ -33,6 +38,9 @@ class EmergenciaServiceTest {
 
     @Mock
     private BonitaService bonitaService;
+
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private EmergenciaService emergenciaService;
@@ -66,7 +74,7 @@ class EmergenciaServiceTest {
         });
         when(bonitaService.iniciarInstanciaEmergencia(10L, "Inundacion")).thenReturn(1234L);
 
-        Emergencia resultado = emergenciaService.crear(emergenciaDelCliente());
+        Emergencia resultado = emergenciaService.crear(emergenciaDelCliente(), null);
 
         // Primer save: id y caseId en null, fecha de hoy
         assertThat(idsAlGuardar.get(0)).isNull();
@@ -90,7 +98,7 @@ class EmergenciaServiceTest {
         });
         when(bonitaService.iniciarInstanciaEmergencia(10L, "Inundacion")).thenReturn(1234L);
 
-        emergenciaService.crear(emergenciaDelCliente());
+        emergenciaService.crear(emergenciaDelCliente(), null);
 
         verify(bonitaService, times(1)).iniciarInstanciaEmergencia(10L, "Inundacion");
         verify(bonitaService, times(1)).completarPasosIniciales(1234L, 10L);
@@ -112,7 +120,7 @@ class EmergenciaServiceTest {
         when(bonitaService.iniciarInstanciaEmergencia(10L, "Inundacion"))
                 .thenThrow(new BonitaException("Bonita caido"));
 
-        assertThatThrownBy(() -> emergenciaService.crear(emergenciaDelCliente()))
+        assertThatThrownBy(() -> emergenciaService.crear(emergenciaDelCliente(), null))
                 .isInstanceOf(BonitaException.class);
 
         verify(bonitaService, never()).completarPasosIniciales(any(), any());
@@ -131,10 +139,69 @@ class EmergenciaServiceTest {
         org.mockito.Mockito.doThrow(new BonitaException("tarea no aparecio"))
                 .when(bonitaService).completarPasosIniciales(1234L, 10L);
 
-        assertThatThrownBy(() -> emergenciaService.crear(emergenciaDelCliente()))
+        assertThatThrownBy(() -> emergenciaService.crear(emergenciaDelCliente(), null))
                 .isInstanceOf(BonitaException.class);
 
         verify(emergenciaRepository, times(1)).save(any(Emergencia.class));
+    }
+
+    // ------------------------------------------------------------------
+    // [Entrega final] Autor y visibilidad por perfil
+    // ------------------------------------------------------------------
+
+    private SesionUsuario sesion(Rol rol, Long usuarioId) {
+        return new SesionUsuario("t", usuarioId, "u", "N", "A", rol, null, null, null, Instant.now());
+    }
+
+    private Emergencia creadaPor(Long id, Long usuarioId) {
+        Usuario autor = new Usuario();
+        autor.setId(usuarioId);
+        Emergencia e = new Emergencia();
+        e.setId(id);
+        e.setCreadoPor(autor);
+        return e;
+    }
+
+    @Test
+    void crear_conSesion_registraComoAutorAlUsuarioDeLaSesion() {
+        Usuario autor = new Usuario();
+        autor.setId(1L);
+        when(usuarioRepository.getReferenceById(1L)).thenReturn(autor);
+        when(emergenciaRepository.save(any(Emergencia.class))).thenAnswer(inv -> {
+            Emergencia e = inv.getArgument(0);
+            e.setId(10L);
+            return e;
+        });
+        when(bonitaService.iniciarInstanciaEmergencia(10L, "Inundacion")).thenReturn(1234L);
+
+        Emergencia resultado = emergenciaService.crear(emergenciaDelCliente(), sesion(Rol.OPERADOR_MUNICIPAL, 1L));
+
+        assertThat(resultado.getCreadoPor()).isSameAs(autor);
+    }
+
+    @Test
+    void obtenerVisibles_operadorMunicipal_soloVeLasQueCreo() {
+        List<Emergencia> propias = List.of(creadaPor(1L, 1L));
+        when(emergenciaRepository.findByCreadoPorIdOrderByIdDesc(1L)).thenReturn(propias);
+
+        assertThat(emergenciaService.obtenerVisibles(sesion(Rol.OPERADOR_MUNICIPAL, 1L))).isSameAs(propias);
+        verify(emergenciaRepository, never()).findAll();
+    }
+
+    @Test
+    void obtenerVisibles_coordinador_veTodas() {
+        List<Emergencia> todas = List.of(creadaPor(1L, 1L), creadaPor(2L, 5L));
+        when(emergenciaRepository.findAll()).thenReturn(todas);
+
+        assertThat(emergenciaService.obtenerVisibles(sesion(Rol.COORDINADOR, 2L))).isSameAs(todas);
+    }
+
+    @Test
+    void obtenerVisible_operadorMunicipal_noVeLaEmergenciaDeOtro() {
+        when(emergenciaRepository.findById(2L)).thenReturn(java.util.Optional.of(creadaPor(2L, 5L)));
+
+        assertThat(emergenciaService.obtenerVisible(2L, sesion(Rol.OPERADOR_MUNICIPAL, 1L))).isEmpty();
+        assertThat(emergenciaService.obtenerVisible(2L, sesion(Rol.COORDINADOR, 2L))).isPresent();
     }
 
     @Test

@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import ar.edu.unlp.dssd.model.Usuario; // ¡Importación corregida a model!
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.UsuarioService;
 
 @RestController
@@ -22,6 +24,7 @@ public class UsuarioController {
 
     // 1. CREAR (Método POST)
     @PostMapping
+    @RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Escritura solo del coordinador
     @Operation(summary = "Crear usuario", description = "Registra un usuario.")
     public ResponseEntity<Usuario> crearUsuario(@RequestBody Usuario usuario) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.guardarUsuario(usuario));
@@ -45,6 +48,7 @@ public class UsuarioController {
 
     // 4. ACTUALIZAR (Método PUT)
     @PutMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Actualizar usuario", description = "Actualiza el nombre, apellido y CUIL de un usuario existente.")
     public ResponseEntity<Usuario> actualizarUsuario(@PathVariable Long id, @RequestBody Usuario detalles) {
         return usuarioService.obtenerPorId(id).map(usuarioExistente -> {
@@ -59,6 +63,7 @@ public class UsuarioController {
 
     // 5. BORRAR (Método DELETE)
     @DeleteMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Eliminar usuario", description = "Elimina el usuario indicado si existe.")
     public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
         if (usuarioService.obtenerPorId(id).isPresent()) {

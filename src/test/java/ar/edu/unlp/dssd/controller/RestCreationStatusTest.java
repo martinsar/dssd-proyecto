@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import ar.edu.unlp.dssd.dto.OfertaOngDto;
 import ar.edu.unlp.dssd.dto.OfertaRequest;
 import ar.edu.unlp.dssd.model.Necesidad;
 import ar.edu.unlp.dssd.model.Oferta;
@@ -21,6 +24,8 @@ import ar.edu.unlp.dssd.model.TipoEmergencia;
 import ar.edu.unlp.dssd.model.TipoOrganizacion;
 import ar.edu.unlp.dssd.model.TipoRecurso;
 import ar.edu.unlp.dssd.model.Usuario;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.SesionUsuario;
 import ar.edu.unlp.dssd.service.NecesidadService;
 import ar.edu.unlp.dssd.service.OfertaService;
 import ar.edu.unlp.dssd.service.OrganizacionService;
@@ -79,13 +84,16 @@ class RestCreationStatusTest {
 
     @Test
     void crearOferta_devuelveCreatedYConservaElResultadoDelServicio() {
-        OfertaRequest request = new OfertaRequest(1, "Agua", 1L, 1L, 1L);
-        Oferta recurso = new Oferta();
-        when(ofertaService.crear(request)).thenReturn(recurso);
+        OfertaRequest request = new OfertaRequest(1, "Agua", 1L, 1L, 1L, null);
+        // [Entrega final] La organización sale de la sesión del usuario ONG y se devuelve el lote como OfertaOng
+        SesionUsuario sesion = new SesionUsuario("t", 3L, "caritas", "Rosa", "Representante", Rol.ONG,
+                1L, "Cáritas", null, Instant.now());
+        OfertaOngDto recurso = OfertaOngDto.desde(new Oferta(), false, true, false, true);
+        when(ofertaService.crear(request, sesion)).thenReturn(recurso);
 
-        assertCreated(ofertaController.crear(request), recurso);
+        assertCreated(ofertaController.crear(request, sesion), recurso);
 
-        verify(ofertaService).crear(request);
+        verify(ofertaService).crear(request, sesion);
     }
 
     @Test

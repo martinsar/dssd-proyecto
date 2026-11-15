@@ -3,6 +3,7 @@ package ar.edu.unlp.dssd.service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,8 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -21,10 +24,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import ar.edu.unlp.dssd.exception.BonitaException;
+import ar.edu.unlp.dssd.exception.NoAutenticadoException;
 
 /**
  * Unico punto de integracion con la API REST de Bonita.
@@ -32,6 +37,8 @@ import ar.edu.unlp.dssd.exception.BonitaException;
  */
 @Service
 public class BonitaService {
+
+    private static final Logger log = LoggerFactory.getLogger(BonitaService.class);
 
     // Nombres de tareas, nodos y mensajes del proceso "GestionEmergencias".
     // Tienen que coincidir EXACTAMENTE con los del diagrama de Bonita Studio.
@@ -42,9 +49,14 @@ public class BonitaService {
     private static final String TAREA_GESTIONAR_CONVOCATORIA = "Gestionar Convocatoria";
     private static final String NODO_RECIBIR_NOTIFICACION = "Recibir Notificación";
     private static final String MENSAJE_NOTIFICACION = "Recibe una notificación";
+    // [Entrega final] Tareas finales del proceso
+    static final String TAREA_SELECCIONAR_OFERTAS = "Seleccionar ofertas";
+    static final String TAREA_FINALIZAR_ACTIVIDADES = "Finalizar actividades";
 
     // Bonita crea la tarea siguiente de forma asincronica (milisegundos), por eso reintentamos.
     private static final int MAX_INTENTOS_TAREA = 20;
+    // [Entrega final] Las tareas finales pueden no existir en el diagrama: se reintenta menos
+    private static final int MAX_INTENTOS_TAREA_FINAL = 4;
     private static final long ESPERA_ENTRE_INTENTOS_MS = 250;
 
     // Formato que espera Bonita para un LOCALDATETIME en el contrato (sin fraccion de segundo)
@@ -56,6 +68,7 @@ public class BonitaService {
     private final String processName;
     private final Credenciales credencialesMunicipio;
     private final Credenciales credencialesCoordinador;
+    private final Credenciales credencialesOng;
 
     /** Usuario de Bonita con el que se opera; propiedad es el nombre de la propiedad de la contraseña. */
     private record Credenciales(String username, String password, String propiedadPassword) {
@@ -68,14 +81,80 @@ public class BonitaService {
                          @Value("${bonita.usuarios.municipio.username}") String municipioUsername,
                          @Value("${bonita.usuarios.municipio.password}") String municipioPassword,
                          @Value("${bonita.usuarios.coordinador.username}") String coordinadorUsername,
-                         @Value("${bonita.usuarios.coordinador.password}") String coordinadorPassword) {
+                         @Value("${bonita.usuarios.coordinador.password}") String coordinadorPassword,
+                         @Value("${bonita.usuarios.ong.username}") String ongUsername,
+                         @Value("${bonita.usuarios.ong.password}") String ongPassword) {
         this.restTemplate = restTemplate;
+        this.credencialesOng = new Credenciales(ongUsername, ongPassword, "bonita.usuarios.ong.password");
         this.bonitaUrl = bonitaUrl;
         this.processName = processName;
         this.credencialesMunicipio = new Credenciales(municipioUsername, municipioPassword,
                 "bonita.usuarios.municipio.password");
         this.credencialesCoordinador = new Credenciales(coordinadorUsername, coordinadorPassword,
                 "bonita.usuarios.coordinador.password");
+    }
+
+    // ------------------------------------------------------------------
+    // [Entrega final] Sesión del usuario real (login de la app)
+    // ------------------------------------------------------------------
+
+    /** Se autentica al usuario en Bonita; credenciales inválidas lanzan NoAutenticadoException */
+    public SesionBonita iniciarSesion(String username, String password) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            throw new NoAutenticadoException("Usuario o contraseña incorrectos.");
+        }
+        SesionBonita sinUsuario;
+        try {
+            sinUsuario = autenticar(username.trim(), password);
+        } catch (BonitaException e) {
+            if (e.getCause() instanceof HttpClientErrorException.Unauthorized) {
+                throw new NoAutenticadoException("Usuario o contraseña incorrectos.");
+            }
+            throw e;
+        }
+
+        Map<String, Object> datos = datosSesion(sinUsuario.headers());
+        String userName = datos.get("user_name") != null ? datos.get("user_name").toString() : sinUsuario.username();
+        return new SesionBonita(datos.get("user_id").toString(), userName,
+                sinUsuario.jSessionId(), sinUsuario.apiToken());
+    }
+
+    /** Se obtienen los nombres de rol de las membresías del usuario; si Bonita responde 403 se devuelve vacío */
+    public List<String> obtenerRolesUsuario(SesionBonita sesion) {
+        List<Map<String, Object>> membresias;
+        try {
+            membresias = obtenerLista(sesion.headers(), "consultar los roles del usuario",
+                    bonitaUrl + "/API/identity/membership?p=0&c=50&f=user_id={id}&d=role_id",
+                    sesion.userId());
+        } catch (BonitaException e) {
+            if (e.getCause() instanceof HttpClientErrorException.Forbidden) {
+                log.warn("Bonita no permite consultar las membresías del usuario {}; se usa el rol local",
+                        sesion.username());
+                return List.of();
+            }
+            throw e;
+        }
+
+        List<String> roles = new ArrayList<>();
+        for (Map<String, Object> membresia : membresias) {
+            if (membresia.get("role_id") instanceof Map<?, ?> rol && rol.get("name") != null) {
+                roles.add(rol.get("name").toString());
+            }
+        }
+        return roles;
+    }
+
+    /** Se cierra la sesión en Bonita; los errores se ignoran */
+    public void cerrarSesion(SesionBonita sesion) {
+        if (sesion == null) {
+            return;
+        }
+        try {
+            restTemplate.exchange(bonitaUrl + "/logoutservice?redirect=false", HttpMethod.GET,
+                    new HttpEntity<>(sesion.headers()), Void.class);
+        } catch (RestClientException e) {
+            log.debug("No se pudo cerrar la sesión de Bonita: {}", e.getMessage());
+        }
     }
 
     // ------------------------------------------------------------------
@@ -169,6 +248,31 @@ public class BonitaService {
         enviarMensaje(headers, MENSAJE_NOTIFICACION, NODO_RECIBIR_NOTIFICACION, idEmergencia);
     }
 
+    /** [Entrega final] Se ejecuta "Seleccionar ofertas" como Municipio; false si la tarea no está pendiente */
+    public boolean seleccionarOfertas(Long caseId) {
+        return ejecutarTareaSinContrato(credencialesMunicipio, caseId, TAREA_SELECCIONAR_OFERTAS);
+    }
+
+    /** [Entrega final] Se ejecuta "Finalizar actividades" como ONG; false si la tarea no está pendiente */
+    public boolean finalizarActividades(Long caseId) {
+        return ejecutarTareaSinContrato(credencialesOng, caseId, TAREA_FINALIZAR_ACTIVIDADES);
+    }
+
+    /** Se busca la tarea pendiente, se asigna al usuario del rol y se ejecuta con contrato vacío */
+    private boolean ejecutarTareaSinContrato(Credenciales credenciales, Long caseId, String nombreTarea) {
+        HttpHeaders headers = login(credenciales);
+        String userId = obtenerIdUsuarioSesion(headers);
+
+        Optional<String> tarea = buscarTareaPendiente(headers, caseId, nombreTarea, MAX_INTENTOS_TAREA_FINAL);
+        if (tarea.isEmpty()) {
+            log.warn("La tarea '{}' no está pendiente en el caso {} de Bonita", nombreTarea, caseId);
+            return false;
+        }
+        asignarTarea(headers, tarea.get(), userId);
+        ejecutarTarea(headers, tarea.get(), new HashMap<>());
+        return true;
+    }
+
     // ------------------------------------------------------------------
     // Bloques reutilizables (reciben los headers para no loguearse de mas)
     // ------------------------------------------------------------------
@@ -179,13 +283,17 @@ public class BonitaService {
             throw new BonitaException("Falta configurar la contraseña del usuario de Bonita '"
                     + credenciales.username() + "': definir la propiedad " + credenciales.propiedadPassword());
         }
+        return autenticar(credenciales.username(), credenciales.password()).headers();
+    }
 
+    /** [Entrega final] Se hace el login en Bonita y se arma la sesión (todavía sin user_id) */
+    private SesionBonita autenticar(String username, String password) {
         HttpHeaders loginHeaders = new HttpHeaders();
         loginHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("username", credenciales.username());
-        form.add("password", credenciales.password());
+        form.add("username", username);
+        form.add("password", password);
         form.add("redirect", "false");
 
         ResponseEntity<String> respuesta = llamar("autenticarse", () -> restTemplate.postForEntity(
@@ -197,11 +305,7 @@ public class BonitaService {
             throw new BonitaException("Bonita no devolvió la sesión (JSESSIONID / X-Bonita-API-Token) al autenticarse");
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.COOKIE, "JSESSIONID=" + jSessionId + "; X-Bonita-API-Token=" + apiToken);
-        headers.add("X-Bonita-API-Token", apiToken);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return headers;
+        return new SesionBonita(null, username, jSessionId, apiToken);
     }
 
     private String obtenerIdProceso(HttpHeaders headers) {
@@ -217,6 +321,11 @@ public class BonitaService {
 
     /** Id del usuario logueado; hay que asignarle las tareas para poder ejecutarlas. */
     public String obtenerIdUsuarioSesion(HttpHeaders headers) {
+        return datosSesion(headers).get("user_id").toString();
+    }
+
+    /** Datos de la sesión actual de Bonita (user_id, user_name, ...) */
+    private Map<String, Object> datosSesion(HttpHeaders headers) {
         Map<String, Object> sesion = llamar("obtener la sesión", () -> restTemplate.exchange(
                 bonitaUrl + "/API/system/session/unusedid",
                 HttpMethod.GET,
@@ -225,7 +334,7 @@ public class BonitaService {
         if (sesion == null || sesion.get("user_id") == null) {
             throw new BonitaException("Bonita no devolvió el user_id de la sesión");
         }
-        return sesion.get("user_id").toString();
+        return sesion;
     }
 
     /**

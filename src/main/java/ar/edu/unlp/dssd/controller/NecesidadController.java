@@ -8,11 +8,14 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import ar.edu.unlp.dssd.model.Necesidad;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.NecesidadService;
 
 @RestController
 @RequestMapping("/api/necesidades")
 @Tag(name = "Necesidades", description = "Administración de lotes de recursos asociados a convocatorias.")
+@RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Solo el coordinador gestiona lotes
 public class NecesidadController {
 
     @Autowired

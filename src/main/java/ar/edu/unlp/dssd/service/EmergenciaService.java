@@ -10,6 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import ar.edu.unlp.dssd.model.Emergencia;
 import ar.edu.unlp.dssd.repository.EmergenciaRepository;
+import ar.edu.unlp.dssd.repository.UsuarioRepository;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.SesionUsuario;
 
 @Service
 public class EmergenciaService {
@@ -19,6 +22,9 @@ public class EmergenciaService {
 
     @Autowired
     private BonitaService bonitaService;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     /**
      * Registra una emergencia nueva y le crea su caso en Bonita (un caso por emergencia).
@@ -32,11 +38,13 @@ public class EmergenciaService {
      * huerfano en Bonita.
      */
     @Transactional
-    public Emergencia crear(Emergencia emergencia) {
+    public Emergencia crear(Emergencia emergencia, SesionUsuario sesion) {
         // Ignoramos lo que venga del cliente en estos campos: los define el servidor
         emergencia.setId(null);
         emergencia.setCaseId(null);
         emergencia.setFechaCreacion(LocalDate.now());
+        // [Entrega final] Se registra como autor al usuario de la sesión
+        emergencia.setCreadoPor(sesion == null ? null : usuarioRepository.getReferenceById(sesion.usuarioId()));
 
         Emergencia guardada = emergenciaRepository.save(emergencia);
 
@@ -54,6 +62,27 @@ public class EmergenciaService {
 
     public List<Emergencia> obtenerTodos() {
         return emergenciaRepository.findAll();
+    }
+
+    /** [Entrega final] El operador municipal solo ve las emergencias que creó; el resto ve todas */
+    public List<Emergencia> obtenerVisibles(SesionUsuario sesion) {
+        if (sesion.rol() == Rol.OPERADOR_MUNICIPAL) {
+            return emergenciaRepository.findByCreadoPorIdOrderByIdDesc(sesion.usuarioId());
+        }
+        return emergenciaRepository.findAll();
+    }
+
+    /** [Entrega final] Se busca la emergencia aplicando la misma regla de visibilidad */
+    public Optional<Emergencia> obtenerVisible(Long id, SesionUsuario sesion) {
+        return emergenciaRepository.findById(id).filter(emergencia -> esVisible(emergencia, sesion));
+    }
+
+    private boolean esVisible(Emergencia emergencia, SesionUsuario sesion) {
+        if (sesion.rol() != Rol.OPERADOR_MUNICIPAL) {
+            return true;
+        }
+        return emergencia.getCreadoPor() != null
+                && sesion.usuarioId().equals(emergencia.getCreadoPor().getId());
     }
 
     /** Emergencias sin convocatoria publicada (las que el coordinador todavia tiene que gestionar). */

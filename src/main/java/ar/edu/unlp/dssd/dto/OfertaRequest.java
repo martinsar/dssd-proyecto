@@ -19,13 +19,17 @@ public record OfertaRequest(
         @Positive(message = "El id del tipo de recurso debe ser mayor que cero")
         Long tipoRecursoId,
 
+        // [Entrega final] Se ignora: la organización se toma de la sesión del usuario ONG
         @JsonAlias("organizacion_id")
-        @NotNull(message = "La organizacion es obligatoria")
-        @Positive(message = "El id de la organizacion debe ser mayor que cero")
         Long organizacionId,
 
         @JsonAlias("convocatoria_id")
         @NotNull(message = "La convocatoria es obligatoria")
         @Positive(message = "El id de la convocatoria debe ser mayor que cero")
-        Long convocatoriaId) {
+        Long convocatoriaId,
+
+        // [Entrega final] Oferta conjunta en la que se carga el lote (null si es individual)
+        @JsonAlias("oferta_conjunta_id")
+        @Positive(message = "El id de la oferta conjunta debe ser mayor que cero")
+        Long ofertaConjuntaId) {
 }

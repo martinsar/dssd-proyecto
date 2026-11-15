@@ -14,6 +14,10 @@ public class TipoRecurso {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // [Entrega final] Código estable del catálogo compartido con el Sistema Nacional
+    @Column(name = "codigo", length = 50)
+    private String codigo;
+
     private String nombre;
 
     @JsonIgnore
@@ -32,6 +36,14 @@ public class TipoRecurso {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getCodigo() {
+        return codigo;
+    }
+
+    public void setCodigo(String codigo) {
+        this.codigo = codigo;
     }
 
     public String getNombre() {

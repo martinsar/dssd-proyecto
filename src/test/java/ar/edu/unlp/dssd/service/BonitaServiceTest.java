@@ -9,7 +9,9 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withNoContent;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withUnauthorizedRequest;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.RequestMatcher;
@@ -26,6 +29,7 @@ import org.springframework.test.web.client.ResponseActions;
 import org.springframework.web.client.RestTemplate;
 
 import ar.edu.unlp.dssd.exception.BonitaException;
+import ar.edu.unlp.dssd.exception.NoAutenticadoException;
 
 /**
  * Tests de BonitaService contra un Bonita simulado (MockRestServiceServer).
@@ -37,6 +41,7 @@ class BonitaServiceTest {
     private static final String PROCESO = "GestionEmergencias";
     private static final String MUNICIPIO = "userMunicipio";
     private static final String COORDINADOR = "userCoordinador";
+    private static final String ONG = "userOng";
     private static final String COOKIE_ESPERADA = "JSESSIONID=abc; X-Bonita-API-Token=tok";
 
     private MockRestServiceServer server;
@@ -52,7 +57,7 @@ class BonitaServiceTest {
 
     private BonitaService crearServicio(RestTemplate restTemplate, String pwMunicipio, String pwCoordinador) {
         return new BonitaService(restTemplate, BASE, PROCESO,
-                MUNICIPIO, pwMunicipio, COORDINADOR, pwCoordinador);
+                MUNICIPIO, pwMunicipio, COORDINADOR, pwCoordinador, ONG, "pwOng");
     }
 
     // ------------------------------------------------------------------
@@ -270,6 +275,31 @@ class BonitaServiceTest {
     }
 
     @Test
+    void seleccionarOfertas_comoMunicipio_asignaYEjecutaLaTareaConContratoVacio() {
+        esperarLogin();
+        esperarSesion("3");
+        esperarBusquedaTarea(999L, "Seleccionar%20ofertas", "[{\"id\":\"7001\"}]");
+        esperarAsignacion("7001", "3");
+        esperarEjecucion("7001");
+
+        assertThat(bonitaService.seleccionarOfertas(999L)).isTrue();
+        server.verify();
+    }
+
+    @Test
+    void finalizarActividades_comoOngYSinLaTarea_devuelveFalseSinEjecutar() {
+        esperarLogin(ONG, "pwOng");
+        esperarSesion("9");
+        // [Entrega final] Las tareas finales se buscan solo 4 veces
+        for (int i = 0; i < 4; i++) {
+            esperarBusquedaTarea(999L, "Finalizar%20actividades", "[]");
+        }
+
+        assertThat(bonitaService.finalizarActividades(999L)).isFalse();
+        server.verify();
+    }
+
+    @Test
     void completarRelevamiento_siLaTareaNoAparece_lanzaBonitaException() {
         esperarLogin(COORDINADOR, "pwCoordinador");
         esperarSesion("7");
@@ -328,6 +358,87 @@ class BonitaServiceTest {
                 .andRespond(withNoContent());
 
         bonitaService.publicarConvocatoria(999L, 42L, 77L, LocalDateTime.of(2030, 1, 15, 10, 30, 0));
+
+        server.verify();
+    }
+
+    // ------------------------------------------------------------------
+    // [Entrega final] Login del usuario real
+    // ------------------------------------------------------------------
+
+    @Test
+    void iniciarSesion_conCredencialesValidas_devuelveLaSesionConElUsuarioDeBonita() {
+        esperarLogin("caritas", "bpm");
+        esperarAutenticada(BASE + "/API/system/session/unusedid", HttpMethod.GET)
+                .andRespond(withSuccess("{\"user_id\":\"12\",\"user_name\":\"caritas\"}",
+                        MediaType.APPLICATION_JSON));
+
+        SesionBonita sesion = bonitaService.iniciarSesion(" caritas ", "bpm");
+
+        assertThat(sesion.userId()).isEqualTo("12");
+        assertThat(sesion.username()).isEqualTo("caritas");
+        assertThat(sesion.jSessionId()).isEqualTo("abc");
+        assertThat(sesion.apiToken()).isEqualTo("tok");
+        server.verify();
+    }
+
+    @Test
+    void iniciarSesion_siBonitaResponde401_lanzaNoAutenticado() {
+        server.expect(requestTo(BASE + "/loginservice"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withUnauthorizedRequest());
+
+        assertThatThrownBy(() -> bonitaService.iniciarSesion("caritas", "mal"))
+                .isInstanceOf(NoAutenticadoException.class)
+                .hasMessage("Usuario o contraseña incorrectos.");
+        server.verify();
+    }
+
+    @Test
+    void iniciarSesion_siBonitaFalla_lanzaBonitaException() {
+        server.expect(requestTo(BASE + "/loginservice"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withServerError());
+
+        assertThatThrownBy(() -> bonitaService.iniciarSesion("caritas", "bpm"))
+                .isInstanceOf(BonitaException.class);
+        server.verify();
+    }
+
+    @Test
+    void iniciarSesion_sinPassword_lanzaNoAutenticadoSinLlamarABonita() {
+        assertThatThrownBy(() -> bonitaService.iniciarSesion("caritas", " "))
+                .isInstanceOf(NoAutenticadoException.class);
+        server.verify();
+    }
+
+    @Test
+    void obtenerRolesUsuario_devuelveLosNombresDeRolDeLasMembresias() {
+        esperarAutenticada(BASE + "/API/identity/membership?p=0&c=50&f=user_id=12&d=role_id", HttpMethod.GET)
+                .andRespond(withSuccess("""
+                        [{"role_id":{"id":"3","name":"Organizaciones"}},{"role_id":{"id":"4","name":"Otro"}}]
+                        """, MediaType.APPLICATION_JSON));
+
+        assertThat(bonitaService.obtenerRolesUsuario(new SesionBonita("12", "caritas", "abc", "tok")))
+                .containsExactly("Organizaciones", "Otro");
+        server.verify();
+    }
+
+    @Test
+    void obtenerRolesUsuario_siBonitaResponde403_devuelveListaVacia() {
+        esperarAutenticada(BASE + "/API/identity/membership?p=0&c=50&f=user_id=12&d=role_id", HttpMethod.GET)
+                .andRespond(withStatus(HttpStatus.FORBIDDEN));
+
+        assertThat(bonitaService.obtenerRolesUsuario(new SesionBonita("12", "caritas", "abc", "tok"))).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void cerrarSesion_llamaAlLogoutYToleraErrores() {
+        esperarAutenticada(BASE + "/logoutservice?redirect=false", HttpMethod.GET)
+                .andRespond(withServerError());
+
+        bonitaService.cerrarSesion(new SesionBonita("12", "caritas", "abc", "tok"));
 
         server.verify();
     }

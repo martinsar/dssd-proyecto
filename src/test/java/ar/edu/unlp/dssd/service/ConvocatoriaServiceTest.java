@@ -57,6 +57,10 @@ class ConvocatoriaServiceTest {
     @Mock
     private BonitaService bonitaService;
 
+    // [Entrega final] Al publicar se notifica a las ONGs
+    @Mock
+    private NotificacionService notificacionService;
+
     @InjectMocks
     private ConvocatoriaService convocatoriaService;
 

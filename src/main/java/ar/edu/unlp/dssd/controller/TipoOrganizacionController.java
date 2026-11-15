@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import ar.edu.unlp.dssd.model.TipoOrganizacion;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.TipoOrganizacionService;
 
 @RestController
@@ -19,6 +21,7 @@ public class TipoOrganizacionController {
     private TipoOrganizacionService tipoOrganizacionService;
 
     @PostMapping
+    @RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Escritura solo del coordinador
     @Operation(summary = "Crear tipo de organización", description = "Agrega un tipo de organización al catálogo.")
     public ResponseEntity<TipoOrganizacion> crear(@RequestBody TipoOrganizacion tipo) {
         return ResponseEntity.status(HttpStatus.CREATED).body(tipoOrganizacionService.guardar(tipo));
@@ -39,6 +42,7 @@ public class TipoOrganizacionController {
     }
 
     @PutMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Actualizar tipo de organización", description = "Actualiza el nombre del tipo de organización indicado.")
     public ResponseEntity<TipoOrganizacion> actualizar(@PathVariable Long id, @RequestBody TipoOrganizacion detalles) {
         return tipoOrganizacionService.obtenerPorId(id).map(existente -> {
@@ -49,6 +53,7 @@ public class TipoOrganizacionController {
     }
 
     @DeleteMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Eliminar tipo de organización", description = "Elimina el tipo de organización indicado si existe.")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         if (tipoOrganizacionService.obtenerPorId(id).isPresent()) {

@@ -11,12 +11,16 @@ import ar.edu.unlp.dssd.dto.NecesidadRequest;
 import ar.edu.unlp.dssd.dto.PublicacionRequest;
 import ar.edu.unlp.dssd.model.Convocatoria;
 import ar.edu.unlp.dssd.model.Necesidad;
+import ar.edu.unlp.dssd.seguridad.AccesoIntegracion;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.ConvocatoriaService;
 import ar.edu.unlp.dssd.service.NecesidadService;
 
 @RestController
 @RequestMapping("/api/convocatorias")
 @Tag(name = "Convocatorias", description = "Consulta, edición y publicación de convocatorias y sus lotes.")
+@RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Perfil por defecto
 public class ConvocatoriaController {
 
     @Autowired
@@ -26,6 +30,7 @@ public class ConvocatoriaController {
     private NecesidadService necesidadService;
 
     @GetMapping("/{id}/necesidades")
+    @RolesPermitidos({Rol.COORDINADOR, Rol.ONG})
     @Operation(summary = "Listar lotes de una convocatoria",
             description = "Devuelve las necesidades asociadas a la convocatoria indicada.")
     public List<Necesidad> listarNecesidades(@PathVariable Long id) {
@@ -50,6 +55,7 @@ public class ConvocatoriaController {
     }
 
     @GetMapping("/{id}/ofertas/validacion")
+    @AccesoIntegracion
     @Operation(summary = "Validar ofertas de una convocatoria",
             description = "Indica si las ofertas registradas para la convocatoria cumplen las necesidades asociadas.")
     public ResponseEntity<Boolean> validarOfertas(@PathVariable Long id) {
@@ -64,12 +70,14 @@ public class ConvocatoriaController {
     }
 
     @GetMapping
+    @RolesPermitidos({Rol.COORDINADOR, Rol.ONG})
     @Operation(summary = "Listar convocatorias", description = "Devuelve todas las convocatorias registradas.")
     public List<Convocatoria> listar() {
         return convocatoriaService.obtenerTodos();
     }
 
     @GetMapping("/{id}")
+    @RolesPermitidos({Rol.COORDINADOR, Rol.ONG})
     @Operation(summary = "Obtener convocatoria", description = "Busca una convocatoria por su identificador.")
     public ResponseEntity<Convocatoria> obtenerPorId(@PathVariable Long id) {
         return convocatoriaService.obtenerPorId(id)

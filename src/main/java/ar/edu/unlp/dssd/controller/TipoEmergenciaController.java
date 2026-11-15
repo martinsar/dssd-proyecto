@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import ar.edu.unlp.dssd.model.TipoEmergencia;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.TipoEmergenciaService;
 
 @RestController
@@ -21,6 +23,7 @@ public class TipoEmergenciaController {
     private TipoEmergenciaService tipoEmergenciaService;
 
     @PostMapping
+    @RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Escritura solo del coordinador
     @Operation(summary = "Crear tipo de emergencia", description = "Agrega un tipo de desastre al catálogo.")
     public ResponseEntity<TipoEmergencia> crear(@RequestBody TipoEmergencia tipoEmergencia) {
         return ResponseEntity.status(HttpStatus.CREATED).body(tipoEmergenciaService.guardar(tipoEmergencia));
@@ -41,6 +44,7 @@ public class TipoEmergenciaController {
     }
 
     @PutMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Actualizar tipo de emergencia", description = "Actualiza el nombre del tipo de desastre indicado.")
     public ResponseEntity<TipoEmergencia> actualizar(@PathVariable Long id, @RequestBody TipoEmergencia detalles) {
         return tipoEmergenciaService.obtenerPorId(id).map(existente -> {
@@ -51,6 +55,7 @@ public class TipoEmergenciaController {
     }
 
     @DeleteMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Eliminar tipo de emergencia", description = "Elimina el tipo de desastre indicado si existe.")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         if (tipoEmergenciaService.obtenerPorId(id).isPresent()) {

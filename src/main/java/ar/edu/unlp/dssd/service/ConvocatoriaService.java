@@ -6,24 +6,34 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ar.edu.unlp.dssd.dto.ConvocatoriaRequest;
+import ar.edu.unlp.dssd.dto.ConvocatoriaResumenDto;
+import ar.edu.unlp.dssd.dto.DecisionConvocatoriaRequest;
 import ar.edu.unlp.dssd.dto.NecesidadRequest;
 import ar.edu.unlp.dssd.dto.PublicacionRequest;
 import ar.edu.unlp.dssd.exception.RecursoNoEncontradoException;
 import ar.edu.unlp.dssd.exception.ReglaNegocioException;
+import ar.edu.unlp.dssd.model.AccionConvocatoria;
 import ar.edu.unlp.dssd.model.Convocatoria;
 import ar.edu.unlp.dssd.model.Emergencia;
 import ar.edu.unlp.dssd.model.EstadoConvocatoria;
+import ar.edu.unlp.dssd.model.EstadoOferta;
+import ar.edu.unlp.dssd.model.EtapaEmergencia;
 import ar.edu.unlp.dssd.model.Necesidad;
 import ar.edu.unlp.dssd.model.Oferta;
+import ar.edu.unlp.dssd.model.OfertaVersion;
+import ar.edu.unlp.dssd.model.TipoNotificacion;
 import ar.edu.unlp.dssd.repository.ConvocatoriaRepository;
 import ar.edu.unlp.dssd.repository.EmergenciaRepository;
 import ar.edu.unlp.dssd.repository.NecesidadRepository;
 import ar.edu.unlp.dssd.repository.OfertaRepository;
+import ar.edu.unlp.dssd.repository.OfertaVersionRepository;
+import ar.edu.unlp.dssd.service.EtapaEmergenciaService.EstadoEmergencia;
 
 @Service
 public class ConvocatoriaService {
@@ -45,6 +55,22 @@ public class ConvocatoriaService {
 
     @Autowired
     private BonitaService bonitaService;
+
+    @Autowired
+    private IntegracionService integracionService;
+
+    @Autowired
+    private NotificacionService notificacionService;
+
+    @Autowired
+    private EtapaEmergenciaService etapaEmergenciaService;
+
+    @Autowired
+    private OfertaVersionRepository ofertaVersionRepository;
+
+    // [Entrega final] Lotes que vuelven a PENDIENTE al reabrir o reformular
+    private static final Set<EstadoOferta> ESTADOS_A_REVALIDAR = EnumSet.of(EstadoOferta.VALIDADA,
+            EstadoOferta.NO_HABILITADA, EstadoOferta.NO_SELECCIONADA);
 
     public Convocatoria guardar(Convocatoria convocatoria) {
         return convocatoriaRepository.save(convocatoria);
@@ -75,7 +101,9 @@ public class ConvocatoriaService {
                         necesidad -> necesidad.getTipoRecurso().getId(),
                         Collectors.summingLong(Necesidad::getCantidad)));
 
-        Map<Long, Long> ofertasPorTipoRecurso = ofertas.stream()
+        // [Entrega final] Solo cuentan los lotes válidos (regla 3) y no rechazados por el Sistema Nacional
+        Map<Long, Long> ofertasPorTipoRecurso = integracionService.filtrarValidas(ofertas).stream()
+                .filter(oferta -> oferta.getEstado() != EstadoOferta.NO_HABILITADA)
                 .collect(Collectors.groupingBy(
                         oferta -> oferta.getTipoRecurso().getId(),
                         Collectors.summingLong(Oferta::getCantidad)));
@@ -195,6 +223,79 @@ public class ConvocatoriaService {
         bonitaService.publicarConvocatoria(emergencia.getCaseId(), emergencia.getId(), id, fechaCierre);
 
         convocatoria.setEstado(EstadoConvocatoria.PUBLICADA);
-        return convocatoriaRepository.save(convocatoria);
+        if (convocatoria.getRonda() == null) {
+            convocatoria.setRonda(1);
+        }
+        Convocatoria publicada = convocatoriaRepository.save(convocatoria);
+        // [Entrega final] Se avisa a todas las ONGs
+        notificacionService.notificarConvocatoria(publicada, TipoNotificacion.NUEVA_CONVOCATORIA);
+        return publicada;
+    }
+
+    /**
+     * [Entrega final] Decisión del coordinador cuando la etapa es REQUIERE_DECISION.
+     * REABRIR: nueva fecha de cierre, los lotes ya evaluados vuelven a PENDIENTE y se avisa a las ONGs.
+     * REFORMULAR: igual que REABRIR pero además reemplaza los lotes pedidos.
+     * CONTINUAR_PARCIAL: se acepta la cobertura parcial y se habilita la selección.
+     */
+    @Transactional
+    public ConvocatoriaResumenDto decidir(Long convocatoriaId, DecisionConvocatoriaRequest request) {
+        if (request == null || request.accion() == null) {
+            throw new IllegalArgumentException("Elegí una acción");
+        }
+        Convocatoria convocatoria = convocatoriaRepository.findById(convocatoriaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Convocatoria no encontrada."));
+        Emergencia emergencia = convocatoria.getEmergencia();
+        EstadoEmergencia estado = emergencia == null ? null : etapaEmergenciaService.evaluar(emergencia);
+        if (estado == null || estado.convocatoria() == null
+                || !convocatoriaId.equals(estado.convocatoria().getId())
+                || estado.etapa() != EtapaEmergencia.REQUIERE_DECISION) {
+            throw new ReglaNegocioException("La convocatoria no está esperando una decisión.");
+        }
+
+        AccionConvocatoria accion = request.accion();
+        if (accion == AccionConvocatoria.CONTINUAR_PARCIAL) {
+            if (estado.validas().stream().noneMatch(o -> o.getEstado() == EstadoOferta.VALIDADA)) {
+                throw new ReglaNegocioException("No hay ofertas validadas para continuar con cobertura parcial.");
+            }
+            convocatoria.setCoberturaParcialAceptada(true);
+            return ConvocatoriaResumenDto.desde(convocatoriaRepository.save(convocatoria));
+        }
+
+        LocalDateTime ahora = LocalDateTime.now();
+        if (request.fechaCierre() == null || !request.fechaCierre().isAfter(ahora)) {
+            throw new IllegalArgumentException("Indicá una fecha de cierre futura.");
+        }
+        if (accion == AccionConvocatoria.REFORMULAR) {
+            if (request.necesidades() == null || request.necesidades().isEmpty()) {
+                throw new IllegalArgumentException("Indicá los lotes de la convocatoria reformulada.");
+            }
+            necesidadRepository.deleteAll(necesidadRepository.findByConvocatoriaId(convocatoriaId));
+            for (NecesidadRequest lote : request.necesidades()) {
+                necesidadService.crearLote(convocatoria, lote);
+            }
+        }
+
+        // Los lotes ya evaluados se vuelven a validar en la nueva ronda
+        for (Oferta oferta : estado.ofertas()) {
+            if (ESTADOS_A_REVALIDAR.contains(oferta.getEstado())) {
+                oferta.setEstado(EstadoOferta.PENDIENTE);
+                oferta.setNivelAprobacion(null);
+                oferta.setPerfilCompetencia(null);
+                oferta.setFechaValidacion(null);
+                oferta.avanzarVersion();
+                ofertaRepository.save(oferta);
+                ofertaVersionRepository.save(OfertaVersion.desde(oferta, null, "Reapertura de la convocatoria"));
+            }
+        }
+
+        convocatoria.setFechaApertura(ahora);
+        convocatoria.setFechaCierre(request.fechaCierre());
+        convocatoria.setRonda((convocatoria.getRonda() == null ? 1 : convocatoria.getRonda()) + 1);
+        convocatoria.setCoberturaParcialAceptada(false);
+        Convocatoria reabierta = convocatoriaRepository.save(convocatoria);
+        notificacionService.notificarConvocatoria(reabierta, TipoNotificacion.CONVOCATORIA_REABIERTA);
+        // [Entrega final] Pendiente: avisar la reapertura al proceso de Bonita cuando el diagrama lo contemple
+        return ConvocatoriaResumenDto.desde(reabierta);
     }
 }

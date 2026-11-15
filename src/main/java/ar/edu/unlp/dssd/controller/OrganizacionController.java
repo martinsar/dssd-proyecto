@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import ar.edu.unlp.dssd.model.Organizacion;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.OrganizacionService;
 
 @RestController
@@ -20,6 +22,7 @@ public class OrganizacionController {
 
     // 1. CREAR (POST)
     @PostMapping
+    @RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Escritura solo del coordinador
     @Operation(summary = "Crear organización", description = "Registra una organización.")
     public ResponseEntity<Organizacion> crear(@RequestBody Organizacion organizacion) {
         return ResponseEntity.status(HttpStatus.CREATED).body(organizacionService.guardar(organizacion));
@@ -43,10 +46,13 @@ public class OrganizacionController {
 
     // 4. ACTUALIZAR (PUT)
     @PutMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Actualizar organización",
             description = "Actualiza los datos de una organización existente.")
     public ResponseEntity<Organizacion> actualizar(@PathVariable Long id, @RequestBody Organizacion detalles) {
         return organizacionService.obtenerPorId(id).map(existente -> {
+            existente.setNombre(detalles.getNombre());
+            existente.setCodigoOng(detalles.getCodigoOng());
             existente.setTipo(detalles.getTipo());
             existente.setObjetoSocial(detalles.getObjetoSocial());
             existente.setFechaCreacion(detalles.getFechaCreacion());
@@ -60,6 +66,7 @@ public class OrganizacionController {
 
     // 5. ELIMINAR (DELETE)
     @DeleteMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Eliminar organización", description = "Elimina la organización indicada si existe.")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         if (organizacionService.obtenerPorId(id).isPresent()) {

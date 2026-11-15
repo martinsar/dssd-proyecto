@@ -1,6 +1,8 @@
 package ar.edu.unlp.dssd.repository;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -22,4 +24,15 @@ public interface EmergenciaRepository extends JpaRepository<Emergencia, Long> {
             ORDER BY e.id DESC
             """)
     List<Emergencia> findPendientes();
+
+    // [Entrega final] Emergencias creadas por un usuario (perfil operador municipal)
+    List<Emergencia> findByCreadoPorIdOrderByIdDesc(Long usuarioId);
+
+    // [Entrega final] Emergencia propia del operador municipal
+    Optional<Emergencia> findByIdAndCreadoPorId(Long id, Long usuarioId);
+
+    // [Entrega final] Monitoreo y auditoría
+    List<Emergencia> findAllByOrderByIdDesc();
+
+    List<Emergencia> findByFechaCreacionBetweenOrderByIdDesc(LocalDate desde, LocalDate hasta);
 }

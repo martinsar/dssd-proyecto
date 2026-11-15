@@ -13,10 +13,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import ar.edu.unlp.dssd.controller.AuditorController;
+import ar.edu.unlp.dssd.controller.AuthController;
 import ar.edu.unlp.dssd.controller.ConvocatoriaController;
+import ar.edu.unlp.dssd.controller.CoordinadorController;
 import ar.edu.unlp.dssd.controller.EmergenciaController;
+import ar.edu.unlp.dssd.controller.MunicipioController;
 import ar.edu.unlp.dssd.controller.NecesidadController;
+import ar.edu.unlp.dssd.controller.NotificacionController;
+import ar.edu.unlp.dssd.controller.OfertaConjuntaController;
 import ar.edu.unlp.dssd.controller.OfertaController;
+import ar.edu.unlp.dssd.controller.OngController;
 import ar.edu.unlp.dssd.controller.OrganizacionController;
 import ar.edu.unlp.dssd.controller.ProyectoController;
 import ar.edu.unlp.dssd.controller.TipoEmergenciaController;
@@ -71,10 +78,17 @@ class SwaggerConfigTest {
     @Test
     void todosLosEndpointsTienenResumenYDescripcion() {
         List<Class<?>> controllers = List.of(
+                AuditorController.class,
+                AuthController.class,
                 ConvocatoriaController.class,
+                CoordinadorController.class,
                 EmergenciaController.class,
+                MunicipioController.class,
                 NecesidadController.class,
+                NotificacionController.class,
+                OfertaConjuntaController.class,
                 OfertaController.class,
+                OngController.class,
                 OrganizacionController.class,
                 ProyectoController.class,
                 TipoEmergenciaController.class,
@@ -95,6 +109,32 @@ class SwaggerConfigTest {
                 }
             }
         }
+    }
+
+    @Test
+    void documentaSeguridadYRespuestas401Y403() {
+        Operation listar = operationWithOkResponse();
+        Operation login = operationWithOkResponse();
+        Operation validaciones = operationWithOkResponse();
+        Operation consolidado = operationWithOkResponse();
+
+        OpenAPI openApi = config.customOpenAPI().paths(new Paths()
+                .addPathItem("/api/ofertas", new PathItem().get(listar))
+                .addPathItem("/api/auth/login", new PathItem().post(login))
+                .addPathItem("/api/emergencias/{id}/ofertas/validaciones", new PathItem().post(validaciones))
+                .addPathItem("/api/emergencias/{id}/ofertas", new PathItem().get(consolidado)));
+
+        config.restResponsesCustomizer().customise(openApi);
+
+        assertThat(openApi.getComponents().getSecuritySchemes())
+                .containsKeys(SwaggerConfig.ESQUEMA_BEARER, SwaggerConfig.ESQUEMA_API_KEY);
+        assertThat(listar.getResponses()).containsKeys("200", "401", "403");
+        assertThat(listar.getSecurity()).hasSize(1);
+        assertThat(login.getResponses()).containsKeys("200", "401", "403", "502").doesNotContainKey("201");
+        assertThat(login.getSecurity()).isNull();
+        assertThat(validaciones.getResponses()).containsKeys("200", "401", "403", "404").doesNotContainKey("201");
+        assertThat(validaciones.getSecurity()).hasSize(2);
+        assertThat(consolidado.getSecurity()).hasSize(2);
     }
 
     private boolean isEndpoint(Method method) {

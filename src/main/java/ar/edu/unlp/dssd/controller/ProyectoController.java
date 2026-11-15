@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import ar.edu.unlp.dssd.model.Proyecto;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.ProyectoService;
 
 @RestController
@@ -19,6 +21,7 @@ public class ProyectoController {
     private ProyectoService proyectoService;
 
     @PostMapping
+    @RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Escritura solo del coordinador
     @Operation(summary = "Crear proyecto", description = "Registra un proyecto.")
     public ResponseEntity<Proyecto> crear(@RequestBody Proyecto proyecto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(proyectoService.guardar(proyecto));
@@ -39,6 +42,7 @@ public class ProyectoController {
     }
 
     @PutMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Actualizar proyecto", description = "Actualiza el nombre y estado de un proyecto existente.")
     public ResponseEntity<Proyecto> actualizar(@PathVariable Long id, @RequestBody Proyecto detalles) {
         return proyectoService.obtenerPorId(id).map(existente -> {
@@ -51,6 +55,7 @@ public class ProyectoController {
     }
 
     @DeleteMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Eliminar proyecto", description = "Elimina el proyecto indicado si existe.")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         if (proyectoService.obtenerPorId(id).isPresent()) {

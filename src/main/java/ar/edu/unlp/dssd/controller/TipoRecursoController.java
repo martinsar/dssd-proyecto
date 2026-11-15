@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import ar.edu.unlp.dssd.model.TipoRecurso;
+import ar.edu.unlp.dssd.seguridad.Rol;
+import ar.edu.unlp.dssd.seguridad.RolesPermitidos;
 import ar.edu.unlp.dssd.service.TipoRecursoService;
 
 @RestController
@@ -22,6 +24,7 @@ public class TipoRecursoController {
 
     // 1. CREAR (Método POST)
     @PostMapping
+    @RolesPermitidos(Rol.COORDINADOR) // [Entrega final] Escritura solo del coordinador
     @Operation(summary = "Crear tipo de recurso", description = "Agrega un tipo de recurso al catálogo.")
     public ResponseEntity<TipoRecurso> crearTipoRecurso(@RequestBody TipoRecurso tipoRecurso) {
         return ResponseEntity.status(HttpStatus.CREATED).body(tipoRecursoService.guardar(tipoRecurso));
@@ -45,9 +48,11 @@ public class TipoRecursoController {
 
     // 4. ACTUALIZAR (Método PUT)
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar tipo de recurso", description = "Actualiza el nombre del tipo de recurso indicado.")
+    @RolesPermitidos(Rol.COORDINADOR)
+    @Operation(summary = "Actualizar tipo de recurso", description = "Actualiza el código y el nombre del tipo de recurso indicado.")
     public ResponseEntity<TipoRecurso> actualizarTipoRecurso(@PathVariable Long id, @RequestBody TipoRecurso detalles) {
         return tipoRecursoService.obtenerPorId(id).map(tipoExistente -> {
+            tipoExistente.setCodigo(detalles.getCodigo());
             tipoExistente.setNombre(detalles.getNombre());
             
             TipoRecurso actualizado = tipoRecursoService.guardar(tipoExistente);
@@ -57,6 +62,7 @@ public class TipoRecursoController {
 
     // 5. BORRAR (Método DELETE)
     @DeleteMapping("/{id}")
+    @RolesPermitidos(Rol.COORDINADOR)
     @Operation(summary = "Eliminar tipo de recurso", description = "Elimina el tipo de recurso indicado si existe.")
     public ResponseEntity<Void> eliminarTipoRecurso(@PathVariable Long id) {
         if (tipoRecursoService.obtenerPorId(id).isPresent()) {

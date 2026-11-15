@@ -42,7 +42,43 @@ public class Convocatoria {
     @OneToMany(mappedBy = "convocatoria", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Oferta> ofertas;
 
-    
+    // [Entrega final] Se borran junto con la convocatoria
+    @JsonIgnore
+    @OneToMany(mappedBy = "convocatoria", cascade = CascadeType.REMOVE)
+    private List<OfertaConjunta> ofertasConjuntas;
+
+    // [Entrega final] Ronda de recepción de ofertas (sube con cada reapertura)
+    @Column(name = "ronda")
+    private Integer ronda;
+
+    // [Entrega final] El coordinador aceptó seguir con cobertura parcial
+    @Column(name = "cobertura_parcial_aceptada")
+    private Boolean coberturaParcialAceptada;
+
+
+    public Integer getRonda() {
+        return ronda;
+    }
+
+    public void setRonda(Integer ronda) {
+        this.ronda = ronda;
+    }
+
+    public Boolean getCoberturaParcialAceptada() {
+        return coberturaParcialAceptada;
+    }
+
+    public void setCoberturaParcialAceptada(Boolean coberturaParcialAceptada) {
+        this.coberturaParcialAceptada = coberturaParcialAceptada;
+    }
+
+    public List<OfertaConjunta> getOfertasConjuntas() {
+        return ofertasConjuntas;
+    }
+
+    public void setOfertasConjuntas(List<OfertaConjunta> ofertasConjuntas) {
+        this.ofertasConjuntas = ofertasConjuntas;
+    }
 
     public Long getId() {
         return id;
