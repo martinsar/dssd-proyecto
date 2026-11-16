@@ -55,29 +55,47 @@ INSERT INTO dssd.organizacion (codigo_ong, nombre, tipo, objeto_social, fecha_cr
 INSERT INTO dssd.organizacion (codigo_ong, nombre, tipo, objeto_social, fecha_creacion) SELECT 'ONG-MEDICOS-MUNDO', 'Médicos del Mundo', 'ONG', 'Atención médica a poblaciones afectadas', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.organizacion WHERE codigo_ong = 'ONG-MEDICOS-MUNDO');
 INSERT INTO dssd.organizacion (codigo_ong, nombre, tipo, objeto_social, fecha_creacion) SELECT 'ONG-DEFENSA-CIVIL', 'Defensa Civil Provincial', 'Ente gubernamental', 'Prevención y respuesta ante desastres', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.organizacion WHERE codigo_ong = 'ONG-DEFENSA-CIVIL');
 
--- Se cargan los usuarios de prueba, uno por perfil, vinculados a Bonita (CUIL ficticios)
-INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Olga', 'Olmos', '20000000011', 'OPERADOR_MUNICIPAL', 'olmos', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'olmos' OR cuil = '20000000011');
+-- [Entrega final] Se renombran los usuarios de prueba previos a los nombres actuales de Bonita
+UPDATE dssd.usuario SET usuario_bonita = 'olmos_municipio' WHERE usuario_bonita = 'olmos' AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'olmos_municipio');
+UPDATE dssd.usuario SET usuario_bonita = 'caritas_ong' WHERE usuario_bonita = 'caritas' AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'caritas_ong');
+UPDATE dssd.usuario SET usuario_bonita = 'cruz_roja_ong' WHERE usuario_bonita = 'cruz_roja' AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'cruz_roja_ong');
+
+-- Se cargan los usuarios de prueba vinculados a Bonita (CUIL ficticios)
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Olga', 'Olmos', '20000000011', 'OPERADOR_MUNICIPAL', 'olmos_municipio', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'olmos_municipio' OR cuil = '20000000011');
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Laura', 'Plata', '20000000061', 'OPERADOR_MUNICIPAL', 'la_plata_municipio', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'la_plata_municipio' OR cuil = '20000000061');
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Ernesto', 'Ensenada', '20000000079', 'OPERADOR_MUNICIPAL', 'ensenada_municipio', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'ensenada_municipio' OR cuil = '20000000079');
 INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Carlos', 'Coordinador', '20000000029', 'COORDINADOR', 'agente_coordinador_1', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'agente_coordinador_1' OR cuil = '20000000029');
-INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Rosa', 'Representante', '20000000037', 'ONG', 'caritas', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'caritas' OR cuil = '20000000037');
-INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Raúl', 'Rescate', '20000000053', 'ONG', 'cruz_roja', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'cruz_roja' OR cuil = '20000000053');
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Rosa', 'Representante', '20000000037', 'ONG', 'caritas_ong', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'caritas_ong' OR cuil = '20000000037');
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Raúl', 'Rescate', '20000000053', 'ONG', 'cruz_roja_ong', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'cruz_roja_ong' OR cuil = '20000000053');
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Bruno', 'Bombero', '20000000087', 'ONG', 'bomberos_lp_ong', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'bomberos_lp_ong' OR cuil = '20000000087');
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Marta', 'Médica', '20000000095', 'ONG', 'medicos_mundo_ong', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'medicos_mundo_ong' OR cuil = '20000000095');
+INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Diego', 'Defensa', '20000000109', 'ONG', 'defensa_civil_ong', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'defensa_civil_ong' OR cuil = '20000000109');
 INSERT INTO dssd.usuario (nombre, apellido, cuil, rol, usuario_bonita, fecha_creacion) SELECT 'Adrián', 'Auditor', '20000000045', 'AUDITOR', 'auditor', CURRENT_DATE WHERE NOT EXISTS (SELECT 1 FROM dssd.usuario WHERE usuario_bonita = 'auditor' OR cuil = '20000000045');
 
 -- Se vinculan con Bonita los usuarios de prueba que ya existían sin usuario_bonita
-UPDATE dssd.usuario SET usuario_bonita = 'olmos' WHERE cuil = '20000000011' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'olmos');
+UPDATE dssd.usuario SET usuario_bonita = 'olmos_municipio' WHERE cuil = '20000000011' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'olmos_municipio');
+UPDATE dssd.usuario SET usuario_bonita = 'la_plata_municipio' WHERE cuil = '20000000061' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'la_plata_municipio');
+UPDATE dssd.usuario SET usuario_bonita = 'ensenada_municipio' WHERE cuil = '20000000079' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'ensenada_municipio');
 UPDATE dssd.usuario SET usuario_bonita = 'agente_coordinador_1' WHERE cuil = '20000000029' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'agente_coordinador_1');
-UPDATE dssd.usuario SET usuario_bonita = 'caritas' WHERE cuil = '20000000037' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'caritas');
-UPDATE dssd.usuario SET usuario_bonita = 'cruz_roja' WHERE cuil = '20000000053' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'cruz_roja');
+UPDATE dssd.usuario SET usuario_bonita = 'caritas_ong' WHERE cuil = '20000000037' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'caritas_ong');
+UPDATE dssd.usuario SET usuario_bonita = 'cruz_roja_ong' WHERE cuil = '20000000053' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'cruz_roja_ong');
+UPDATE dssd.usuario SET usuario_bonita = 'bomberos_lp_ong' WHERE cuil = '20000000087' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'bomberos_lp_ong');
+UPDATE dssd.usuario SET usuario_bonita = 'medicos_mundo_ong' WHERE cuil = '20000000095' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'medicos_mundo_ong');
+UPDATE dssd.usuario SET usuario_bonita = 'defensa_civil_ong' WHERE cuil = '20000000109' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'defensa_civil_ong');
 UPDATE dssd.usuario SET usuario_bonita = 'auditor' WHERE cuil = '20000000045' AND usuario_bonita IS NULL AND NOT EXISTS (SELECT 1 FROM dssd.usuario u WHERE u.usuario_bonita = 'auditor');
 
 -- Se normalizan los roles locales de los usuarios de prueba (respaldo si Bonita no expone las membresías)
-UPDATE dssd.usuario SET rol = 'OPERADOR_MUNICIPAL' WHERE usuario_bonita = 'olmos';
-UPDATE dssd.usuario SET rol = 'COORDINADOR' WHERE usuario_bonita = 'agente_coordinador_1';
-UPDATE dssd.usuario SET rol = 'ONG' WHERE usuario_bonita IN ('caritas', 'cruz_roja');
-UPDATE dssd.usuario SET rol = 'AUDITOR' WHERE usuario_bonita = 'auditor';
+UPDATE dssd.usuario SET rol = 'OPERADOR_MUNICIPAL' WHERE usuario_bonita IN ('olmos_municipio', 'la_plata_municipio', 'ensenada_municipio');
+UPDATE dssd.usuario SET rol = 'COORDINADOR' WHERE usuario_bonita IN ('agente_coordinador_1');
+UPDATE dssd.usuario SET rol = 'ONG' WHERE usuario_bonita IN ('caritas_ong', 'cruz_roja_ong', 'bomberos_lp_ong', 'medicos_mundo_ong', 'defensa_civil_ong');
+UPDATE dssd.usuario SET rol = 'AUDITOR' WHERE usuario_bonita IN ('auditor');
 
 -- Se vinculan los representantes con su organización
-UPDATE dssd.usuario SET organizacion_id = (SELECT MIN(o.id) FROM dssd.organizacion o WHERE o.codigo_ong = 'ONG-CARITAS') WHERE usuario_bonita = 'caritas' AND organizacion_id IS NULL;
-UPDATE dssd.usuario SET organizacion_id = (SELECT MIN(o.id) FROM dssd.organizacion o WHERE o.codigo_ong = 'ONG-CRUZ-ROJA') WHERE usuario_bonita = 'cruz_roja' AND organizacion_id IS NULL;
+UPDATE dssd.usuario SET organizacion_id = (SELECT MIN(o.id) FROM dssd.organizacion o WHERE o.codigo_ong = 'ONG-CARITAS') WHERE usuario_bonita = 'caritas_ong' AND organizacion_id IS NULL;
+UPDATE dssd.usuario SET organizacion_id = (SELECT MIN(o.id) FROM dssd.organizacion o WHERE o.codigo_ong = 'ONG-CRUZ-ROJA') WHERE usuario_bonita = 'cruz_roja_ong' AND organizacion_id IS NULL;
+UPDATE dssd.usuario SET organizacion_id = (SELECT MIN(o.id) FROM dssd.organizacion o WHERE o.codigo_ong = 'ONG-BOMBEROS-LP') WHERE usuario_bonita = 'bomberos_lp_ong' AND organizacion_id IS NULL;
+UPDATE dssd.usuario SET organizacion_id = (SELECT MIN(o.id) FROM dssd.organizacion o WHERE o.codigo_ong = 'ONG-MEDICOS-MUNDO') WHERE usuario_bonita = 'medicos_mundo_ong' AND organizacion_id IS NULL;
+UPDATE dssd.usuario SET organizacion_id = (SELECT MIN(o.id) FROM dssd.organizacion o WHERE o.codigo_ong = 'ONG-DEFENSA-CIVIL') WHERE usuario_bonita = 'defensa_civil_ong' AND organizacion_id IS NULL;
 
 -- Se quitan los CHECK de enums que haya generado Hibernate (bloquean los estados nuevos)
 ALTER TABLE dssd.oferta DROP CONSTRAINT IF EXISTS oferta_estado_check;
@@ -109,4 +127,4 @@ INSERT INTO dssd.inventario_recurso (organizacion_id, tipo_recurso_id, cantidad_
 INSERT INTO dssd.inventario_recurso (organizacion_id, tipo_recurso_id, cantidad_disponible, descripcion, fecha_actualizacion) SELECT o.id, t.id, 2000, 'Bidones de 5 L', CURRENT_TIMESTAMP FROM dssd.organizacion o, dssd.tipo_recurso t WHERE o.codigo_ong = 'ONG-CRUZ-ROJA' AND t.codigo = 'AGUA' AND NOT EXISTS (SELECT 1 FROM dssd.inventario_recurso i WHERE i.organizacion_id = o.id AND i.tipo_recurso_id = t.id);
 
 -- Se asignan al operador municipal las emergencias previas sin autor
-UPDATE dssd.emergencia SET creado_por = (SELECT MIN(u.id) FROM dssd.usuario u WHERE u.usuario_bonita = 'olmos') WHERE creado_por IS NULL;
+UPDATE dssd.emergencia SET creado_por = (SELECT MIN(u.id) FROM dssd.usuario u WHERE u.usuario_bonita = 'olmos_municipio') WHERE creado_por IS NULL;
