@@ -1,0 +1,17 @@
+{
+  "id": "dssd-rescuesync-env",
+  "name": "RescueSync Local",
+  "values": [
+    { "key": "baseUrl", "value": "http://localhost:8083", "enabled": true },
+    { "key": "tokenMunicipio", "value": "", "enabled": true },
+    { "key": "tokenCoordinador", "value": "", "enabled": true },
+    { "key": "tokenOng", "value": "", "enabled": true },
+    { "key": "tokenMunicipio2", "value": "", "enabled": true },
+    { "key": "emergenciaId", "value": "1", "enabled": true },
+    { "key": "convocatoriaId", "value": "1", "enabled": true },
+    { "key": "ofertaId", "value": "1", "enabled": true }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2026-11-16T21:35:00.000Z",
+  "_postman_exported_using": "Copilot SDK"
+}

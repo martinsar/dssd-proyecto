@@ -1,0 +1,322 @@
+{
+  "info": {
+    "name": "RescueSync API - flujo completo",
+    "description": "Colección de requests para probar el flujo completo de RescueSync en Postman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Login operador municipal",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"olmos\",\n  \"password\": \"bpm\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Emergencias - Crear emergencia",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenMunicipio}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipoDesastre\": \"Inundación\",\n  \"nivelGravedad\": \"ALTA\",\n  \"zonaAfectada\": \"La Plata\",\n  \"descripcion\": \"Crecida del canal principal con evacuación parcial.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/emergencias",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "emergencias"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login coordinador",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"agente_coordinador_1\",\n  \"password\": \"bpm\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Tipos recurso - Listar",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenCoordinador}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8083/api/tipos-recurso",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "tipos-recurso"]
+        }
+      }
+    },
+    {
+      "name": "Emergencias - Crear convocatoria (relevamiento)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenCoordinador}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"necesidades\": [\n    {\n      \"tipoRecursoId\": 1,\n      \"cantidad\": 100,\n      \"descripcion\": \"Raciones de alimento\"\n    },\n    {\n      \"tipoRecursoId\": 2,\n      \"cantidad\": 200,\n      \"descripcion\": \"Bidones de agua\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/emergencias/{{emergenciaId}}/convocatorias",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "emergencias", "{{emergenciaId}}", "convocatorias"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login ONG",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"caritas\",\n  \"password\": \"bpm\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "ONG - Listar mis ofertas",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenOng}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8083/api/ong/ofertas",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "ong", "ofertas"]
+        }
+      }
+    },
+    {
+      "name": "ONG - Crear oferta",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenOng}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cantidad\": 40,\n  \"descripcion\": \"Donación de alimentos y frazadas\",\n  \"tipoRecursoId\": 1,\n  \"convocatoriaId\": {{convocatoriaId}}\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/ong/ofertas",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "ong", "ofertas"]
+        }
+      }
+    },
+    {
+      "name": "Bonita - Registrar validaciones",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenCoordinador}}" },
+          { "key": "X-Api-Key", "value": "rescuesync-bonita-2026" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resultados\": [\n    {\n      \"ofertaId\": {{ofertaId}},\n      \"habilitada\": true\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/emergencias/{{emergenciaId}}/ofertas/validaciones",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "emergencias", "{{emergenciaId}}", "ofertas", "validaciones"]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login municipio (relogin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"olmos\",\n  \"password\": \"bpm\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Municipio - Seleccionar ofertas",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenMunicipio2}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ofertaIds\": [{{ofertaId}}]\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/municipio/emergencias/{{emergenciaId}}/adjudicacion",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "municipio", "emergencias", "{{emergenciaId}}", "adjudicacion"]
+        }
+      }
+    },
+    {
+      "name": "Bonita - Confirmar adjudicación",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenCoordinador}}" },
+          { "key": "X-Api-Key", "value": "rescuesync-bonita-2026" }
+        ],
+        "url": {
+          "raw": "http://localhost:8083/api/emergencias/{{emergenciaId}}/adjudicacion/notificaciones",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "emergencias", "{{emergenciaId}}", "adjudicacion", "notificaciones"]
+        }
+      }
+    },
+    {
+      "name": "ONG - Finalizar actividad del lote",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenOng}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"informe\": \"Entrega finalizada y comprobada.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8083/api/ong/ofertas/{{ofertaId}}/finalizacion",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "ong", "ofertas", "{{ofertaId}}", "finalizacion"]
+        }
+      }
+    },
+    {
+      "name": "Consulta - Sesión actual",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenMunicipio}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8083/api/auth/sesion",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "auth", "sesion"]
+        }
+      }
+    },
+    {
+      "name": "Consulta - Mis emergencias",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenMunicipio}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8083/api/municipio/emergencias",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "municipio", "emergencias"]
+        }
+      }
+    },
+    {
+      "name": "Consulta - Mis ofertas de ONG",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{tokenOng}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8083/api/ong/ofertas",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8083",
+          "path": ["api", "ong", "ofertas"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "tokenMunicipio", "value": "" },
+    { "key": "tokenCoordinador", "value": "" },
+    { "key": "tokenOng", "value": "" },
+    { "key": "tokenMunicipio2", "value": "" },
+    { "key": "emergenciaId", "value": "1" },
+    { "key": "convocatoriaId", "value": "1" },
+    { "key": "ofertaId", "value": "1" }
+  ]
+}

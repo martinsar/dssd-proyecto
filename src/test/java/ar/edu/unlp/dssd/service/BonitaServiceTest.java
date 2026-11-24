@@ -444,6 +444,98 @@ class BonitaServiceTest {
     }
 
     // ------------------------------------------------------------------
+    // [Entrega final] Consultas de métricas y auditoría
+    // ------------------------------------------------------------------
+
+    @Test
+    void obtenerDatosMetricasProceso_usaSesionDelUsuarioSiTienePermisos() {
+        esperarAutenticada(BASE + "/API/bpm/process?p=0&c=50&f=name=" + PROCESO, HttpMethod.GET)
+                .andRespond(withSuccess("[{\"id\":\"8001\",\"name\":\"GestionEmergencias\",\"version\":\"1.0\",\"activationState\":\"ENABLED\"}]",
+                        MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/archivedFlowNode?p=0&c=100&f=processId=8001",
+                HttpMethod.GET)
+                .andRespond(withSuccess("[{\"name\":\"Desglosar Lotes\",\"caseId\":\"10\"}]",
+                        MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/archivedCase?p=0&c=100&f=processDefinitionId=8001", HttpMethod.GET)
+                .andRespond(withSuccess("[{\"sourceObjectId\":\"10\"}]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/case?p=0&c=100&f=processDefinitionId=8001", HttpMethod.GET)
+                .andRespond(withSuccess("[{\"id\":\"11\"}]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/humanTask?p=0&c=100&f=processId=8001", HttpMethod.GET)
+                .andRespond(withSuccess("[{\"name\":\"Gestionar Convocatoria\",\"caseId\":\"11\"}]",
+                        MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/flowNode?p=0&c=100&f=processId=8001&f=state=failed", HttpMethod.GET)
+                .andRespond(withSuccess("[{\"caseId\":\"11\",\"state\":\"failed\"}]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/identity/user?p=0&c=100", HttpMethod.GET)
+                .andRespond(withSuccess("[{\"id\":\"7\",\"userName\":\"agente_coordinador_1\"}]",
+                        MediaType.APPLICATION_JSON));
+
+        var datos = bonitaService.obtenerDatosMetricasProceso(new SesionBonita("5", "auditor", "abc", "tok"));
+
+        assertThat(datos.procesos()).hasSize(1);
+        assertThat(datos.flujosArchivados()).hasSize(1);
+        assertThat(datos.casosArchivados()).hasSize(1);
+        assertThat(datos.casosActivos()).hasSize(1);
+        assertThat(datos.tareasPendientes()).hasSize(1);
+        assertThat(datos.tareasFallidas()).hasSize(1);
+        assertThat(datos.usuariosPorId()).containsEntry("7", "agente_coordinador_1");
+        server.verify();
+    }
+
+    @Test
+    void obtenerDatosMetricasProceso_siLaSesionRecibe403_reintentaConUsuarioAuditorYCierraSesion() {
+        esperarAutenticada(BASE + "/API/bpm/process?p=0&c=50&f=name=" + PROCESO, HttpMethod.GET)
+                .andRespond(withStatus(HttpStatus.FORBIDDEN));
+        esperarLogin("install", "install");
+        esperarAutenticada(BASE + "/API/bpm/process?p=0&c=50&f=name=" + PROCESO, HttpMethod.GET)
+                .andRespond(withSuccess("[{\"id\":\"8001\"}]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/archivedFlowNode?p=0&c=100&f=processId=8001",
+                HttpMethod.GET)
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/archivedCase?p=0&c=100&f=processDefinitionId=8001", HttpMethod.GET)
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/case?p=0&c=100&f=processDefinitionId=8001", HttpMethod.GET)
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/humanTask?p=0&c=100&f=processId=8001", HttpMethod.GET)
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/flowNode?p=0&c=100&f=processId=8001&f=state=failed", HttpMethod.GET)
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/identity/user?p=0&c=100", HttpMethod.GET)
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/logoutservice?redirect=false", HttpMethod.GET)
+                .andRespond(withNoContent());
+
+        var datos = bonitaService.obtenerDatosMetricasProceso(new SesionBonita("5", "auditor", "abc", "tok"));
+
+        assertThat(datos.flujosArchivados()).isEmpty();
+        assertThat(datos.casosArchivados()).isEmpty();
+        assertThat(datos.casosActivos()).isEmpty();
+        assertThat(datos.tareasPendientes()).isEmpty();
+        assertThat(datos.tareasFallidas()).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void obtenerDatosMetricasCaso_sinSesion_autenticaConsultaFlujosPendientesYCasoYCierraSesion() {
+        esperarLogin("install", "install");
+        esperarAutenticada(BASE + "/API/bpm/archivedFlowNode?p=0&c=100&f=caseId=99",
+                HttpMethod.GET)
+                .andRespond(withSuccess("[{\"name\":\"Registrar Emergencia.\"}]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/humanTask?p=0&c=100&f=caseId=99", HttpMethod.GET)
+                .andRespond(withSuccess("[{\"name\":\"Desglosar Lotes\"}]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/API/bpm/archivedCase?p=0&c=1&f=sourceObjectId=99", HttpMethod.GET)
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        esperarAutenticada(BASE + "/logoutservice?redirect=false", HttpMethod.GET)
+                .andRespond(withNoContent());
+
+        var datos = bonitaService.obtenerDatosMetricasCaso(99L, null);
+
+        assertThat(datos.flujosArchivados()).hasSize(1);
+        assertThat(datos.tareasPendientes()).hasSize(1);
+        assertThat(datos.casoArchivado()).isEmpty();
+        server.verify();
+    }
+
+    // ------------------------------------------------------------------
     // Contraseñas sin configurar
     // ------------------------------------------------------------------
 

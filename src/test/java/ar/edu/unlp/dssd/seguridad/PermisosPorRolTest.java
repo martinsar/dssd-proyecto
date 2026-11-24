@@ -113,7 +113,11 @@ class PermisosPorRolTest {
     @Test
     void auditor_soloParaElAuditor() throws Exception {
         esperar("/api/auditor/indicadores", Rol.AUDITOR, status().isOk());
+        esperar("/api/auditor/series-mensuales", Rol.AUDITOR, status().isOk());
+        esperar("/api/auditor/emergencias/1/tiempos", Rol.AUDITOR, status().isOk());
         esperar("/api/auditor/emergencias", Rol.COORDINADOR, status().isForbidden());
+        esperar("/api/auditor/series-mensuales", Rol.ONG, status().isForbidden());
+        esperar("/api/auditor/emergencias/1/tiempos", Rol.OPERADOR_MUNICIPAL, status().isForbidden());
     }
 
     @Test
