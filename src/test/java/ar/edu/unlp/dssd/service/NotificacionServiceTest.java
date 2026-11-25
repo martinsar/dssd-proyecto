@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.LinkedHashSet;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,7 @@ import ar.edu.unlp.dssd.model.Convocatoria;
 import ar.edu.unlp.dssd.model.Emergencia;
 import ar.edu.unlp.dssd.model.Notificacion;
 import ar.edu.unlp.dssd.model.Oferta;
+import ar.edu.unlp.dssd.model.OfertaConjunta;
 import ar.edu.unlp.dssd.model.Organizacion;
 import ar.edu.unlp.dssd.model.TipoNotificacion;
 import ar.edu.unlp.dssd.repository.NotificacionRepository;
@@ -92,5 +94,28 @@ class NotificacionServiceTest {
 
         assertThatThrownBy(() -> notificacionService.marcarLeida(1L, 5L))
                 .isInstanceOf(RecursoNoEncontradoException.class);
+    }
+    // [Entrega final] Se avisa a las participantes de la oferta conjunta, no a la creadora
+    @Test
+    void notificarOfertaConjunta_avisaALasParticipantesMenosALaCreadora() {
+        Organizacion duena = organizacion(1L);
+        duena.setNombre("Cáritas");
+        OfertaConjunta conjunta = new OfertaConjunta();
+        conjunta.setId(5L);
+        conjunta.setConvocatoria(convocatoria());
+        conjunta.setOrganizacionDuena(duena);
+        conjunta.setParticipantes(new LinkedHashSet<>(List.of(duena, organizacion(2L), organizacion(3L))));
+        when(notificacionRepository.save(any(Notificacion.class))).then(returnsFirstArg());
+
+        int enviadas = notificacionService.notificarOfertaConjunta(conjunta);
+
+        assertThat(enviadas).isEqualTo(2);
+        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
+        verify(notificacionRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues()).extracting(n -> n.getOrganizacion().getId()).containsExactly(2L, 3L);
+        Notificacion primera = captor.getAllValues().get(0);
+        assertThat(primera.getTipo()).isEqualTo(TipoNotificacion.OFERTA_CONJUNTA_INVITACION);
+        assertThat(primera.getMensaje()).startsWith("Cáritas te sumó a la oferta conjunta N° 5 para la emergencia N° 12");
+        assertThat(primera.getConvocatoria().getId()).isEqualTo(7L);
     }
 }

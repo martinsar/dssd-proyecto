@@ -44,6 +44,7 @@ class OfertaConjuntaServiceTest {
     @Mock private OrganizacionRepository organizacionRepository;
     @Mock private OfertaRepository ofertaRepository;
     @Mock private OfertaService ofertaService;
+    @Mock private NotificacionService notificacionService;
     @InjectMocks private OfertaConjuntaService servicio;
 
     private final SesionUsuario sesionCaritas = new SesionUsuario("t", 3L, "caritas", "Rosa", "Representante",
@@ -89,6 +90,8 @@ class OfertaConjuntaServiceTest {
                 .containsExactly("Cáritas", "Cruz Roja Argentina");
         assertThat(dto.valida()).isFalse();
         assertThat(dto.faltan()).containsExactly("Cáritas", "Cruz Roja Argentina");
+        // [Entrega final] Se avisa a las participantes al crear la oferta conjunta
+        verify(notificacionService).notificarOfertaConjunta(any(OfertaConjunta.class));
     }
 
     @Test
