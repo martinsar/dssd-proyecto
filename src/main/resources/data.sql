@@ -1253,3 +1253,27 @@ SELECT 30, 'Voluntarios Defensa Civil retirados temporalmente', 'RETIRADA', CURR
 FROM dssd.convocatoria c JOIN dssd.emergencia e ON e.id = c.emergencia_id JOIN dssd.organizacion o ON o.codigo_ong = 'ONG-DEFENSA-CIVIL' JOIN dssd.tipo_recurso t ON t.codigo = 'VOLUNTARIOS'
 WHERE e.descripcion = 'Emergencia hídrica en cinturón hortícola con convocatoria abierta a ONGs.'
 AND NOT EXISTS (SELECT 1 FROM dssd.oferta x WHERE x.convocatoria_id = c.id AND x.descripcion = 'Voluntarios Defensa Civil retirados temporalmente');
+
+-- [Entrega final] Se completa el historial de versiones de los lotes precargados (alta y último estado)
+INSERT INTO dssd.oferta_version (cantidad, descripcion, estado, fecha_hora, motivo, numero_version, oferta_id, tipo_recurso_id, usuario_id)
+SELECT o.cantidad, o.descripcion, 'PENDIENTE', CAST(o.fecha_creacion AS timestamp), 'Alta del lote', 1, o.id, o.tipo_recurso_id, NULL
+FROM dssd.oferta o
+WHERE NOT EXISTS (SELECT 1 FROM dssd.oferta_version v WHERE v.oferta_id = o.id);
+
+INSERT INTO dssd.oferta_version (cantidad, descripcion, estado, fecha_hora, motivo, numero_version, oferta_id, tipo_recurso_id, usuario_id)
+SELECT o.cantidad, o.descripcion, o.estado, COALESCE(o.fecha_finalizacion, o.fecha_adjudicacion, o.fecha_modificacion),
+       CASE o.estado
+           WHEN 'PENDIENTE' THEN 'Modificación del lote'
+           WHEN 'VALIDADA' THEN 'Validación del Sistema Nacional'
+           WHEN 'NO_HABILITADA' THEN 'Validación del Sistema Nacional'
+           WHEN 'SELECCIONADA' THEN 'Seleccionado por el municipio'
+           WHEN 'NO_SELECCIONADA' THEN 'No seleccionado por el municipio'
+           WHEN 'ADJUDICADA' THEN 'Adjudicación confirmada'
+           WHEN 'FINALIZADA' THEN 'Actividad finalizada'
+           WHEN 'RETIRADA' THEN 'Retiro del lote'
+       END,
+       o.numero_version, o.id, o.tipo_recurso_id, NULL
+FROM dssd.oferta o
+WHERE o.numero_version > 1
+AND NOT EXISTS (SELECT 1 FROM dssd.oferta_version v WHERE v.oferta_id = o.id AND v.numero_version = o.numero_version)
+AND EXISTS (SELECT 1 FROM dssd.oferta_version v WHERE v.oferta_id = o.id AND v.numero_version = 1 AND v.motivo = 'Alta del lote' AND v.usuario_id IS NULL);
