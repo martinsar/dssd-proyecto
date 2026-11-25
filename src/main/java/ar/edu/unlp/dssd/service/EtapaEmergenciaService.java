@@ -72,8 +72,10 @@ public class EtapaEmergenciaService {
      * sin convocatoria o BORRADOR: EN_RELEVAMIENTO. PUBLICADA y antes del cierre: CONVOCATORIA_ABIERTA.
      * Con la ventana vencida: solo FINALIZADA (sin ADJUDICADA ni SELECCIONADA): FINALIZADA; alguna FINALIZADA
      * y quedan ADJUDICADA: EN_EJECUCION; alguna SELECCIONADA o ADJUDICADA (ninguna finalizada): ADJUDICADA;
-     * sin lotes: REQUIERE_DECISION; alguna PENDIENTE: EN_VALIDACION; lo validado no cubre lo pedido y no se
-     * aceptó cobertura parcial: REQUIERE_DECISION; alguna VALIDADA: EN_SELECCION; si no, REQUIERE_DECISION.
+     * sin lotes: REQUIERE_DECISION; alguna PENDIENTE: REQUIERE_DECISION si lo no rechazado (PENDIENTE incluida,
+     * sin NO_HABILITADA) no cubre lo pedido y no se aceptó cobertura parcial, si no EN_VALIDACION;
+     * lo validado no cubre lo pedido y no se aceptó cobertura parcial: REQUIERE_DECISION;
+     * alguna VALIDADA: EN_SELECCION; si no, REQUIERE_DECISION.
      */
     public EtapaEmergencia calcularEtapa(Convocatoria c, List<Oferta> validas, List<Necesidad> lotes,
                                          LocalDateTime ahora) {
@@ -102,6 +104,13 @@ public class EtapaEmergenciaService {
             return EtapaEmergencia.REQUIERE_DECISION;
         }
         if (hay(activas, EstadoOferta.PENDIENTE)) {
+            // [Entrega final] El coordinador decide con las ofertas aún pendientes (el proceso valida la cobertura primero)
+            List<Oferta> noRechazadas = activas.stream()
+                    .filter(o -> o.getEstado() != EstadoOferta.NO_HABILITADA).toList();
+            if (!coberturaCompleta(lotes, noRechazadas, null)
+                    && !Boolean.TRUE.equals(c.getCoberturaParcialAceptada())) {
+                return EtapaEmergencia.REQUIERE_DECISION;
+            }
             return EtapaEmergencia.EN_VALIDACION;
         }
         if (!coberturaCompleta(lotes, activas, ESTADOS_VALIDADOS)

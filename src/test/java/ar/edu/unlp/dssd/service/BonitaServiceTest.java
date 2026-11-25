@@ -329,6 +329,7 @@ class BonitaServiceTest {
                 .andExpect(jsonPath("$.idConvocatoriaInput").value(77))
                 // Sin fraccion de segundo, formato yyyy-MM-dd'T'HH:mm:ss
                 .andExpect(jsonPath("$.fechaCierreInput").value("2030-01-15T10:30:45"))
+                .andExpect(jsonPath("$.accionInput").doesNotExist())
                 .andRespond(withNoContent());
         esperarAutenticada(BASE + "/API/bpm/message", HttpMethod.POST)
                 .andExpect(jsonPath("$.messageName").value("Recibe una notificación"))
@@ -359,6 +360,93 @@ class BonitaServiceTest {
 
         bonitaService.publicarConvocatoria(999L, 42L, 77L, LocalDateTime.of(2030, 1, 15, 10, 30, 0));
 
+        server.verify();
+    }
+
+    @Test
+    void decidirContinuacion_ejecutaLaTareaConDecisionInput() {
+        esperarLogin(COORDINADOR, "pwCoordinador");
+        esperarSesion("7");
+        esperarBusquedaTarea(999L, "Decidir%20c%C3%B3mo%20continuar", "[{\"id\":\"6003\"}]");
+        esperarAsignacion("6003", "7");
+        esperarAutenticada(BASE + "/API/bpm/userTask/6003/execution", HttpMethod.POST)
+                .andExpect(jsonPath("$.decisionInput").value("CONTINUAR_PARCIAL"))
+                .andRespond(withNoContent());
+        // Sin expectativa de /API/bpm/message: enviarlo haria fallar el test
+
+        bonitaService.decidirContinuacion(999L, "CONTINUAR_PARCIAL");
+
+        server.verify();
+    }
+
+    @Test
+    void decisionPendiente_trueSiLaTareaEstaPendiente() {
+        esperarLogin(COORDINADOR, "pwCoordinador");
+        esperarBusquedaTarea(999L, "Decidir%20c%C3%B3mo%20continuar", "[{\"id\":\"6003\"}]");
+
+        assertThat(bonitaService.decisionPendiente(999L)).isTrue();
+        server.verify();
+    }
+
+    @Test
+    void decisionPendiente_falseSiNoAparece() {
+        esperarLogin(COORDINADOR, "pwCoordinador");
+        for (int i = 0; i < 4; i++) {
+            esperarBusquedaTarea(999L, "Decidir%20c%C3%B3mo%20continuar", "[]");
+        }
+
+        assertThat(bonitaService.decisionPendiente(999L)).isFalse();
+        server.verify();
+    }
+
+    @Test
+    void decidirContinuacion_sinTareaPendiente_lanzaBonitaException() {
+        esperarLogin(COORDINADOR, "pwCoordinador");
+        esperarSesion("7");
+        for (int i = 0; i < 4; i++) {
+            esperarBusquedaTarea(999L, "Decidir%20c%C3%B3mo%20continuar", "[]");
+        }
+
+        assertThatThrownBy(() -> bonitaService.decidirContinuacion(999L, "REABRIR"))
+                .isInstanceOf(BonitaException.class)
+                .hasMessageContaining("Decidir cómo continuar")
+                .hasMessageContaining("no está pendiente");
+        server.verify();
+    }
+
+    @Test
+    void reabrirConvocatoria_completaLaNuevaInstanciaYNotifica() {
+        esperarLogin(COORDINADOR, "pwCoordinador");
+        esperarSesion("7");
+        esperarBusquedaTarea(999L, "Gestionar%20Convocatoria", "[{\"id\":\"6004\"}]");
+        esperarAsignacion("6004", "7");
+        esperarAutenticada(BASE + "/API/bpm/userTask/6004/execution", HttpMethod.POST)
+                .andExpect(jsonPath("$.idConvocatoriaInput").value(77))
+                .andExpect(jsonPath("$.fechaCierreInput").value("2030-01-15T10:30:00"))
+                .andExpect(jsonPath("$.accionInput").doesNotExist())
+                .andRespond(withNoContent());
+        esperarAutenticada(BASE + "/API/bpm/message", HttpMethod.POST)
+                .andExpect(jsonPath("$.targetFlowNode").value("Recibir Notificación"))
+                .andRespond(withNoContent());
+
+        bonitaService.reabrirConvocatoria(999L, 42L, 77L, LocalDateTime.of(2030, 1, 15, 10, 30, 0));
+
+        server.verify();
+    }
+
+    @Test
+    void reabrirConvocatoria_sinInstanciaPendiente_lanzaBonitaExceptionSinAtajoDeArchivada() {
+        esperarLogin(COORDINADOR, "pwCoordinador");
+        esperarSesion("7");
+        for (int i = 0; i < 20; i++) {
+            esperarBusquedaTarea(999L, "Gestionar%20Convocatoria", "[]");
+        }
+        // Sin expectativa de archivedHumanTask ni de mensaje
+
+        assertThatThrownBy(() -> bonitaService.reabrirConvocatoria(999L, 42L, 77L,
+                LocalDateTime.of(2030, 1, 15, 10, 30, 0)))
+                .isInstanceOf(BonitaException.class)
+                .hasMessageContaining("Gestionar Convocatoria");
         server.verify();
     }
 

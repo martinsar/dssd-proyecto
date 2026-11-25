@@ -61,6 +61,8 @@ public class BonitaMetricasService {
             BonitaService.TAREA_REGISTRAR_EMERGENCIA,
             BonitaService.TAREA_DESGLOSAR_LOTES,
             BonitaService.TAREA_GESTIONAR_CONVOCATORIA,
+            // [Entrega final] Decisión del coordinador cuando no hay cobertura
+            BonitaService.TAREA_DECIDIR_CONTINUACION,
             BonitaService.TAREA_SELECCIONAR_OFERTAS,
             BonitaService.TAREA_FINALIZAR_ACTIVIDADES);
 
