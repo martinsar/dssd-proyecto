@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ar.edu.unlp.dssd.dto.ConvocatoriaResumenDto;
 import ar.edu.unlp.dssd.dto.DecisionConvocatoriaRequest;
 import ar.edu.unlp.dssd.dto.NecesidadRequest;
+import ar.edu.unlp.dssd.exception.BonitaException;
 import ar.edu.unlp.dssd.exception.ReglaNegocioException;
 import ar.edu.unlp.dssd.model.AccionConvocatoria;
 import ar.edu.unlp.dssd.model.Convocatoria;
@@ -70,7 +73,9 @@ class DecisionConvocatoriaTest {
 
     private void enEtapa(EtapaEmergencia etapa) {
         emergencia.setId(5L);
+        emergencia.setCaseId(999L);
         convocatoria.setId(7L);
+        convocatoria.setFechaCierre(LocalDateTime.of(2030, 3, 1, 12, 0));
         convocatoria.setEstado(EstadoConvocatoria.PUBLICADA);
         convocatoria.setRonda(1);
         convocatoria.setEmergencia(emergencia);
@@ -95,6 +100,7 @@ class DecisionConvocatoriaTest {
         enEtapa(EtapaEmergencia.REQUIERE_DECISION);
         when(convocatoriaRepository.save(any(Convocatoria.class))).then(returnsFirstArg());
         LocalDateTime cierre = LocalDateTime.now().plusDays(2);
+        when(bonitaService.decisionPendiente(999L)).thenReturn(true);
 
         ConvocatoriaResumenDto dto = convocatoriaService.decidir(7L,
                 new DecisionConvocatoriaRequest(AccionConvocatoria.REABRIR, cierre, null));
@@ -106,6 +112,87 @@ class DecisionConvocatoriaTest {
         assertThat(noHabilitada.getEstado()).isEqualTo(EstadoOferta.PENDIENTE);
         assertThat(retirada.getEstado()).isEqualTo(EstadoOferta.RETIRADA);
         verify(notificacionService).notificarConvocatoria(convocatoria, TipoNotificacion.CONVOCATORIA_REABIERTA);
+        // [Entrega final] Se informa la decisión y se completa la nueva instancia de Gestionar Convocatoria
+        verify(bonitaService).decidirContinuacion(999L, "REABRIR");
+        verify(bonitaService).reabrirConvocatoria(999L, 5L, 7L, cierre);
+    }
+
+    @Test
+    void reabrir_siBonitaFalla_propagaLaExcepcion() {
+        enEtapa(EtapaEmergencia.REQUIERE_DECISION);
+        when(convocatoriaRepository.save(any(Convocatoria.class))).then(returnsFirstArg());
+        when(bonitaService.decisionPendiente(999L)).thenReturn(true);
+        doThrow(new BonitaException("falla")).when(bonitaService)
+                .decidirContinuacion(any(), any());
+
+        assertThatThrownBy(() -> convocatoriaService.decidir(7L, new DecisionConvocatoriaRequest(
+                AccionConvocatoria.REABRIR, LocalDateTime.now().plusDays(2), null)))
+                .isInstanceOf(BonitaException.class);
+    }
+
+    @Test
+    void decidir_sinCaseIdEnLaEmergencia_responde409() {
+        enEtapa(EtapaEmergencia.REQUIERE_DECISION);
+        emergencia.setCaseId(null);
+        when(convocatoriaRepository.save(any(Convocatoria.class))).then(returnsFirstArg());
+
+        assertThatThrownBy(() -> convocatoriaService.decidir(7L, new DecisionConvocatoriaRequest(
+                AccionConvocatoria.REABRIR, LocalDateTime.now().plusDays(2), null)))
+                .isInstanceOf(ReglaNegocioException.class)
+                .hasMessageContaining("Bonita");
+        verify(bonitaService, never()).decidirContinuacion(any(), any());
+    }
+
+    @Test
+    void reabrir_sinDecisionPendiente_salteaLaDecisionYReabreDirecto() {
+        enEtapa(EtapaEmergencia.REQUIERE_DECISION);
+        when(convocatoriaRepository.save(any(Convocatoria.class))).then(returnsFirstArg());
+        when(bonitaService.decisionPendiente(999L)).thenReturn(false);
+
+        convocatoriaService.decidir(7L, new DecisionConvocatoriaRequest(AccionConvocatoria.REABRIR,
+                LocalDateTime.now().plusDays(2), null));
+
+        verify(bonitaService, never()).decidirContinuacion(any(), any());
+        verify(bonitaService).reabrirConvocatoria(eq(999L), eq(5L), eq(7L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void reabrir_sinNingunaTareaPendiente_propagaLaBonitaException() {
+        enEtapa(EtapaEmergencia.REQUIERE_DECISION);
+        when(convocatoriaRepository.save(any(Convocatoria.class))).then(returnsFirstArg());
+        when(bonitaService.decisionPendiente(999L)).thenReturn(false);
+        doThrow(new BonitaException("no apareció")).when(bonitaService)
+                .reabrirConvocatoria(any(), any(), any(), any());
+
+        assertThatThrownBy(() -> convocatoriaService.decidir(7L, new DecisionConvocatoriaRequest(
+                AccionConvocatoria.REABRIR, LocalDateTime.now().plusDays(2), null)))
+                .isInstanceOf(BonitaException.class);
+    }
+
+    @Test
+    void continuarParcial_conSoloOfertasPendientes_esValido() {
+        validada.setEstado(EstadoOferta.PENDIENTE);
+        noHabilitada.setEstado(EstadoOferta.NO_HABILITADA);
+        enEtapa(EtapaEmergencia.REQUIERE_DECISION);
+        when(convocatoriaRepository.save(any(Convocatoria.class))).then(returnsFirstArg());
+
+        ConvocatoriaResumenDto dto = convocatoriaService.decidir(7L,
+                new DecisionConvocatoriaRequest(AccionConvocatoria.CONTINUAR_PARCIAL, null, null));
+
+        assertThat(dto.coberturaParcialAceptada()).isTrue();
+        verify(bonitaService).decidirContinuacion(999L, "CONTINUAR_PARCIAL");
+    }
+
+    @Test
+    void continuarParcial_sinOfertasPendientesNiValidadas_responde409() {
+        validada.setEstado(EstadoOferta.NO_HABILITADA);
+        enEtapa(EtapaEmergencia.REQUIERE_DECISION);
+
+        assertThatThrownBy(() -> convocatoriaService.decidir(7L,
+                new DecisionConvocatoriaRequest(AccionConvocatoria.CONTINUAR_PARCIAL, null, null)))
+                .isInstanceOf(ReglaNegocioException.class)
+                .hasMessage("No hay ofertas para continuar con cobertura parcial.");
+        verify(bonitaService, never()).decidirContinuacion(any(), any());
     }
 
     @Test
@@ -125,12 +212,15 @@ class DecisionConvocatoriaTest {
         when(necesidadRepository.findByConvocatoriaId(7L)).thenReturn(anteriores);
         when(convocatoriaRepository.save(any(Convocatoria.class))).then(returnsFirstArg());
         NecesidadRequest nuevo = new NecesidadRequest(1L, 300, "Bidones");
+        when(bonitaService.decisionPendiente(999L)).thenReturn(true);
 
         convocatoriaService.decidir(7L, new DecisionConvocatoriaRequest(AccionConvocatoria.REFORMULAR,
                 LocalDateTime.now().plusDays(1), List.of(nuevo)));
 
         verify(necesidadRepository).deleteAll(anteriores);
         verify(necesidadService).crearLote(convocatoria, nuevo);
+        verify(bonitaService).decidirContinuacion(999L, "REFORMULAR");
+        verify(bonitaService).reabrirConvocatoria(eq(999L), eq(5L), eq(7L), any(LocalDateTime.class));
     }
 
     @Test
@@ -153,5 +243,8 @@ class DecisionConvocatoriaTest {
         assertThat(dto.coberturaParcialAceptada()).isTrue();
         assertThat(validada.getEstado()).isEqualTo(EstadoOferta.VALIDADA);
         verify(notificacionService, never()).notificarConvocatoria(any(), any());
+        // Solo se informa la decisión: no se reabre Gestionar Convocatoria ni hay mensaje
+        verify(bonitaService).decidirContinuacion(999L, "CONTINUAR_PARCIAL");
+        verify(bonitaService, never()).reabrirConvocatoria(any(), any(), any(), any());
     }
 }

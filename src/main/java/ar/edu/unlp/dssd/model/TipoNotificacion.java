@@ -5,5 +5,7 @@ public enum TipoNotificacion {
     NUEVA_CONVOCATORIA,
     CONVOCATORIA_REABIERTA,
     OFERTA_ADJUDICADA,
-    OFERTA_NO_SELECCIONADA
+    OFERTA_NO_SELECCIONADA,
+    // [Entrega final] Aviso a las ONG sumadas a una oferta conjunta
+    OFERTA_CONJUNTA_INVITACION
 }

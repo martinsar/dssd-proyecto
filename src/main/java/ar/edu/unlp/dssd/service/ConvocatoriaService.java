@@ -255,11 +255,16 @@ public class ConvocatoriaService {
 
         AccionConvocatoria accion = request.accion();
         if (accion == AccionConvocatoria.CONTINUAR_PARCIAL) {
-            if (estado.validas().stream().noneMatch(o -> o.getEstado() == EstadoOferta.VALIDADA)) {
-                throw new ReglaNegocioException("No hay ofertas validadas para continuar con cobertura parcial.");
+            // [Entrega final] Alcanza con ofertas pendientes o validadas: el Sistema Nacional valida después
+            if (estado.validas().stream().noneMatch(o -> o.getEstado() == EstadoOferta.PENDIENTE
+                    || o.getEstado() == EstadoOferta.VALIDADA)) {
+                throw new ReglaNegocioException("No hay ofertas para continuar con cobertura parcial.");
             }
             convocatoria.setCoberturaParcialAceptada(true);
-            return ConvocatoriaResumenDto.desde(convocatoriaRepository.save(convocatoria));
+            Convocatoria parcial = convocatoriaRepository.save(convocatoria);
+            // [Entrega final] Último paso: si Bonita falla se deshace la transacción
+            informarDecisionABonita(emergencia, parcial, accion);
+            return ConvocatoriaResumenDto.desde(parcial);
         }
 
         LocalDateTime ahora = LocalDateTime.now();
@@ -295,7 +300,27 @@ public class ConvocatoriaService {
         convocatoria.setCoberturaParcialAceptada(false);
         Convocatoria reabierta = convocatoriaRepository.save(convocatoria);
         notificacionService.notificarConvocatoria(reabierta, TipoNotificacion.CONVOCATORIA_REABIERTA);
-        // [Entrega final] Pendiente: avisar la reapertura al proceso de Bonita cuando el diagrama lo contemple
+        // [Entrega final] Último paso: si Bonita falla se deshace la transacción
+        informarDecisionABonita(emergencia, reabierta, accion);
         return ConvocatoriaResumenDto.desde(reabierta);
+    }
+
+    /** [Entrega final] Se informa la decisión del coordinador al caso de Bonita de la emergencia */
+    private void informarDecisionABonita(Emergencia emergencia, Convocatoria convocatoria,
+                                         AccionConvocatoria accion) {
+        if (emergencia.getCaseId() == null) {
+            throw new ReglaNegocioException("La emergencia no tiene un caso asociado en Bonita");
+        }
+        if (accion == AccionConvocatoria.CONTINUAR_PARCIAL) {
+            bonitaService.decidirContinuacion(emergencia.getCaseId(), accion.name());
+            return;
+        }
+        // [Entrega final] Si "Decidir cómo continuar" no está pendiente (Bonita ya volvió a "Gestionar Convocatoria"
+        // o es un reintento), se saltea la decisión; reabrirConvocatoria falla si tampoco está la otra tarea
+        if (bonitaService.decisionPendiente(emergencia.getCaseId())) {
+            bonitaService.decidirContinuacion(emergencia.getCaseId(), accion.name());
+        }
+        bonitaService.reabrirConvocatoria(emergencia.getCaseId(), emergencia.getId(), convocatoria.getId(),
+                convocatoria.getFechaCierre());
     }
 }

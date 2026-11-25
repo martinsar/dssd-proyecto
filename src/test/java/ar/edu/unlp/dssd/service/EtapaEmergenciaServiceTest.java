@@ -84,6 +84,25 @@ class EtapaEmergenciaServiceTest {
     }
 
     @Test
+    void pendientesQueNoCubrenLoPedido_requiereDecision() {
+        assertThat(etapa(vencida(), oferta(200, EstadoOferta.PENDIENTE), oferta(100, EstadoOferta.VALIDADA),
+                oferta(900, EstadoOferta.NO_HABILITADA))).isEqualTo(EtapaEmergencia.REQUIERE_DECISION);
+    }
+
+    @Test
+    void pendientesQueNoCubrenPeroConParcialAceptada_siguenEnValidacion() {
+        Convocatoria c = vencida();
+        c.setCoberturaParcialAceptada(true);
+        assertThat(etapa(c, oferta(200, EstadoOferta.PENDIENTE))).isEqualTo(EtapaEmergencia.EN_VALIDACION);
+    }
+
+    @Test
+    void pendientesYValidadasQueCubren_siguenEnValidacion() {
+        assertThat(etapa(vencida(), oferta(300, EstadoOferta.PENDIENTE), oferta(200, EstadoOferta.VALIDADA)))
+                .isEqualTo(EtapaEmergencia.EN_VALIDACION);
+    }
+
+    @Test
     void ventanaVencidaSinLotes_requiereDecision() {
         assertThat(etapa(vencida())).isEqualTo(EtapaEmergencia.REQUIERE_DECISION);
     }

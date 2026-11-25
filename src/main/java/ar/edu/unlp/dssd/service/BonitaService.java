@@ -51,6 +51,8 @@ public class BonitaService {
     static final String TAREA_GESTIONAR_CONVOCATORIA = "Gestionar Convocatoria";
     private static final String NODO_RECIBIR_NOTIFICACION = "Recibir Notificación";
     private static final String MENSAJE_NOTIFICACION = "Recibe una notificación";
+    // [Entrega final] Tarea humana de la decisión del coordinador cuando la cobertura no alcanza
+    static final String TAREA_DECIDIR_CONTINUACION = "Decidir cómo continuar";
     // [Entrega final] Tareas finales del proceso
     static final String TAREA_SELECCIONAR_OFERTAS = "Seleccionar ofertas";
     static final String TAREA_FINALIZAR_ACTIVIDADES = "Finalizar actividades";
@@ -376,13 +378,7 @@ public class BonitaService {
 
         Optional<String> gestionar = buscarTareaPendiente(headers, caseId, TAREA_GESTIONAR_CONVOCATORIA);
         if (gestionar.isPresent()) {
-            String taskId = gestionar.get();
-            asignarTarea(headers, taskId, userId);
-
-            Map<String, Object> contrato = new HashMap<>();
-            contrato.put("idConvocatoriaInput", idConvocatoria);
-            contrato.put("fechaCierreInput", fechaCierre.truncatedTo(ChronoUnit.SECONDS).format(FORMATO_FECHA_HORA));
-            ejecutarTarea(headers, taskId, contrato);
+            completarGestionarConvocatoria(headers, userId, gestionar.get(), idConvocatoria, fechaCierre);
         } else if (!existeTareaArchivada(headers, caseId, TAREA_GESTIONAR_CONVOCATORIA)) {
             throw new BonitaException("La tarea '" + TAREA_GESTIONAR_CONVOCATORIA
                     + "' no apareció en el caso " + caseId + " de Bonita");
@@ -391,6 +387,53 @@ public class BonitaService {
         // no se ejecuta de nuevo y se reintenta solo la notificacion.
 
         enviarMensaje(headers, MENSAJE_NOTIFICACION, NODO_RECIBIR_NOTIFICACION, idEmergencia);
+    }
+
+    /** [Entrega final] Indica si "Decidir cómo continuar" está pendiente en el caso (pocos reintentos) */
+    public boolean decisionPendiente(Long caseId) {
+        HttpHeaders headers = login(credencialesCoordinador);
+        return buscarTareaPendiente(headers, caseId, TAREA_DECIDIR_CONTINUACION, MAX_INTENTOS_TAREA_FINAL).isPresent();
+    }
+
+    /**
+     * [Entrega final] Se ejecuta "Decidir cómo continuar" como Coordinador con la decisión
+     * (CONTINUAR_PARCIAL, REABRIR o REFORMULAR). Si la tarea no está pendiente se lanza BonitaException.
+     */
+    public void decidirContinuacion(Long caseId, String decision) {
+        HttpHeaders headers = login(credencialesCoordinador);
+        String userId = obtenerIdUsuarioSesion(headers);
+
+        String taskId = buscarTareaPendiente(headers, caseId, TAREA_DECIDIR_CONTINUACION, MAX_INTENTOS_TAREA_FINAL)
+                .orElseThrow(() -> new BonitaException("La tarea '" + TAREA_DECIDIR_CONTINUACION
+                        + "' no está pendiente en el caso " + caseId + " de Bonita"));
+        asignarTarea(headers, taskId, userId);
+        Map<String, Object> contrato = new HashMap<>();
+        contrato.put("decisionInput", decision);
+        ejecutarTarea(headers, taskId, contrato);
+    }
+
+    /**
+     * [Entrega final] Reapertura: tras "Decidir cómo continuar" "Gestionar Convocatoria" aparece como una
+     * instancia nueva. Se espera pendiente (sin atajo de archivada, que corresponde a la instancia vieja),
+     * se completa y se envía la notificación.
+     */
+    public void reabrirConvocatoria(Long caseId, Long idEmergencia, Long idConvocatoria,
+                                    LocalDateTime fechaCierre) {
+        HttpHeaders headers = login(credencialesCoordinador);
+        String userId = obtenerIdUsuarioSesion(headers);
+
+        String taskId = esperarTarea(headers, caseId, TAREA_GESTIONAR_CONVOCATORIA);
+        completarGestionarConvocatoria(headers, userId, taskId, idConvocatoria, fechaCierre);
+        enviarMensaje(headers, MENSAJE_NOTIFICACION, NODO_RECIBIR_NOTIFICACION, idEmergencia);
+    }
+
+    private void completarGestionarConvocatoria(HttpHeaders headers, String userId, String taskId,
+                                                Long idConvocatoria, LocalDateTime fechaCierre) {
+        asignarTarea(headers, taskId, userId);
+        Map<String, Object> contrato = new HashMap<>();
+        contrato.put("idConvocatoriaInput", idConvocatoria);
+        contrato.put("fechaCierreInput", fechaCierre.truncatedTo(ChronoUnit.SECONDS).format(FORMATO_FECHA_HORA));
+        ejecutarTarea(headers, taskId, contrato);
     }
 
     /** [Entrega final] Se ejecuta "Seleccionar ofertas" como Municipio; false si la tarea no está pendiente */

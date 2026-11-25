@@ -14,6 +14,7 @@ import ar.edu.unlp.dssd.model.Convocatoria;
 import ar.edu.unlp.dssd.model.Emergencia;
 import ar.edu.unlp.dssd.model.Notificacion;
 import ar.edu.unlp.dssd.model.Oferta;
+import ar.edu.unlp.dssd.model.OfertaConjunta;
 import ar.edu.unlp.dssd.model.Organizacion;
 import ar.edu.unlp.dssd.model.TipoNotificacion;
 import ar.edu.unlp.dssd.repository.NotificacionRepository;
@@ -77,6 +78,31 @@ public class NotificacionService {
                     emergencia, convocatoria, oferta);
         }
         return true;
+    }
+
+    /** [Entrega final] Se avisa a las ONG participantes de una oferta conjunta, salvo a la creadora */
+    @Transactional
+    public int notificarOfertaConjunta(OfertaConjunta conjunta) {
+        Organizacion duena = conjunta.getOrganizacionDuena();
+        Convocatoria convocatoria = conjunta.getConvocatoria();
+        Emergencia emergencia = convocatoria == null ? null : convocatoria.getEmergencia();
+        String creadora = duena == null ? "Una organización" : duena.getNombre();
+        String numero = emergencia == null ? "" : " para la emergencia N° " + emergencia.getId()
+                + " (" + emergencia.getTipoDesastre() + " en " + emergencia.getZonaAfectada() + ")";
+        String cierre = convocatoria == null || convocatoria.getFechaCierre() == null ? ""
+                : " antes del " + convocatoria.getFechaCierre().format(FORMATO_CIERRE);
+        String mensaje = creadora + " te sumó a la oferta conjunta N° " + conjunta.getId() + numero
+                + ". Cargá tu lote" + cierre + ".";
+        int enviadas = 0;
+        for (Organizacion participante : conjunta.getParticipantes()) {
+            if (participante == null || (duena != null && duena.getId().equals(participante.getId()))) {
+                continue;
+            }
+            notificar(participante, TipoNotificacion.OFERTA_CONJUNTA_INVITACION,
+                    "Te sumaron a una oferta conjunta", mensaje, emergencia, convocatoria, null);
+            enviadas++;
+        }
+        return enviadas;
     }
 
     public Notificacion notificar(Organizacion organizacion, TipoNotificacion tipo, String titulo, String mensaje,

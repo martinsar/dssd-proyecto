@@ -50,6 +50,9 @@ public class OfertaConjuntaService {
     @Autowired
     private OfertaService ofertaService;
 
+    @Autowired
+    private NotificacionService notificacionService;
+
     /** Sin invitaciones: los participantes quedan fijos desde el alta */
     @Transactional
     public OfertaConjuntaOngDto crear(OfertaConjuntaRequest request, SesionUsuario sesion) {
@@ -89,7 +92,10 @@ public class OfertaConjuntaService {
         conjunta.setOrganizacionDuena(duena);
         conjunta.setParticipantes(participantes);
         conjunta.setFechaCreacion(LocalDateTime.now());
-        return aDto(ofertaConjuntaRepository.save(conjunta), organizacionId);
+        OfertaConjunta guardada = ofertaConjuntaRepository.save(conjunta);
+        // [Entrega final] Se avisa a las ONG sumadas, menos a la creadora
+        notificacionService.notificarOfertaConjunta(guardada);
+        return aDto(guardada, organizacionId);
     }
 
     /** Ofertas conjuntas donde la organización es dueña o participante */
